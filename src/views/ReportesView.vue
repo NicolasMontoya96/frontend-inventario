@@ -31,10 +31,12 @@
             </div>
             
             <div class="mt-6 pt-4 border-t border-gray-100 flex space-x-2">
-              <button @click="descargarInventario('pdf')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm">
+              <button @click="descargarInventario('pdf')" :disabled="descargando.inventario" class="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm flex items-center justify-center gap-1">
+                <svg v-if="descargando.inventario" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 📄 PDF
               </button>
-              <button @click="descargarInventario('excel')" class="flex-1 bg-green-700 hover:bg-green-800 text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm">
+              <button @click="descargarInventario('excel')" :disabled="descargando.inventario" class="flex-1 bg-green-700 hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm flex items-center justify-center gap-1">
+                <svg v-if="descargando.inventario" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 📊 Excel
               </button>
             </div>
@@ -63,10 +65,12 @@
             </div>
             
             <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
-              <button @click="descargarVentas('pdf')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm">
+              <button @click="descargarVentas('pdf')" :disabled="descargando.ventas" class="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm flex items-center justify-center gap-1">
+                <svg v-if="descargando.ventas" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 📄 PDF
               </button>
-              <button @click="descargarVentas('excel')" class="flex-1 bg-green-700 hover:bg-green-800 text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm">
+              <button @click="descargarVentas('excel')" :disabled="descargando.ventas" class="flex-1 bg-green-700 hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm flex items-center justify-center gap-1">
+                <svg v-if="descargando.ventas" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 📊 Excel
               </button>
             </div>
@@ -84,10 +88,12 @@
             </div>
             
             <div class="mt-6 pt-4 border-t border-gray-100 flex space-x-2">
-              <button @click="descargarDeudores('pdf')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm">
+              <button @click="descargarDeudores('pdf')" :disabled="descargando.deudores" class="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm flex items-center justify-center gap-1">
+                <svg v-if="descargando.deudores" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 📄 PDF
               </button>
-              <button @click="descargarDeudores('excel')" class="flex-1 bg-green-700 hover:bg-green-800 text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm">
+              <button @click="descargarDeudores('excel')" :disabled="descargando.deudores" class="flex-1 bg-green-700 hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3 rounded-xl text-[11px] font-bold transition shadow-sm flex items-center justify-center gap-1">
+                <svg v-if="descargando.deudores" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 📊 Excel
               </button>
             </div>
@@ -100,78 +106,88 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import axios from 'axios'
+import { ref, reactive } from 'vue'
+import api from '../api/axios' // ✅ Instancia centralizada con token automático
 import Sidebar from '../components/Sidebar.vue'
+import { useToast } from '../composables/useToast'
+
+const { showToast } = useToast()
 
 const hoy = new Date().toISOString().split('T')[0]
 const fechaInicio = ref(hoy)
 const fechaFin = ref(hoy)
 
+// ✅ Estado de descarga por reporte — evita doble clic y muestra spinner
+const descargando = reactive({
+  inventario: false,
+  ventas: false,
+  deudores: false
+})
+
+// ✅ Función utilitaria que dispara la descarga del blob en el navegador
+const dispararDescarga = (blob, nombreArchivo) => {
+  const url = window.URL.createObjectURL(new Blob([blob]))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', nombreArchivo)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
 // --- REPORTE 1: VALORIZACIÓN DE INVENTARIO ---
 const descargarInventario = async (formato) => {
+  descargando.inventario = true
   try {
-    const token = localStorage.getItem('token')
     const endpoint = formato === 'excel' ? 'inventario-excel' : 'inventario-pdf'
     const ext = formato === 'excel' ? 'xlsx' : 'pdf'
 
-    const res = await axios.get(`http://127.0.0.1:8000/clientes/global/${endpoint}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      responseType: 'blob' 
-    })
-
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `Valorizacion_Inventario_Global.${ext}`)
-    document.body.appendChild(link)
-    link.click()
-    window.URL.revokeObjectURL(url)
-  } catch (e) { alert("Error al descargar inventario.") }
+    // ✅ api soporta responseType: 'blob' sin problema
+    const res = await api.get(`/clientes/global/${endpoint}`, { responseType: 'blob' })
+    dispararDescarga(res.data, `Valorizacion_Inventario_Global.${ext}`)
+    showToast(`Inventario descargado en ${formato.toUpperCase()} correctamente.`, 'success')
+  } catch (e) {
+    showToast('Error al descargar el inventario. Intenta de nuevo.', 'error')
+  } finally {
+    descargando.inventario = false
+  }
 }
 
 // --- REPORTE 2: BALANCE DE VENTAS POR FECHAS ---
 const descargarVentas = async (formato) => {
+  descargando.ventas = true
   try {
-    const token = localStorage.getItem('token')
     const endpoint = formato === 'excel' ? 'ventas-excel' : 'ventas-pdf'
     const ext = formato === 'excel' ? 'xlsx' : 'pdf'
 
-    const res = await axios.get(`http://127.0.0.1:8000/clientes/global/${endpoint}`, {
+    const res = await api.get(`/clientes/global/${endpoint}`, {
       params: { fecha_inicio: fechaInicio.value, fecha_fin: fechaFin.value },
-      headers: { 'Authorization': `Bearer ${token}` },
       responseType: 'blob'
     })
-
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `Reporte_Ventas_${fechaInicio.value}_a_${fechaFin.value}.${ext}`)
-    document.body.appendChild(link)
-    link.click()
-    window.URL.revokeObjectURL(url)
-  } catch (e) { alert("Error al procesar el reporte de ventas.") }
+    dispararDescarga(res.data, `Reporte_Ventas_${fechaInicio.value}_a_${fechaFin.value}.${ext}`)
+    showToast(`Reporte de ventas descargado en ${formato.toUpperCase()} correctamente.`, 'success')
+  } catch (e) {
+    showToast('Error al procesar el reporte de ventas. Intenta de nuevo.', 'error')
+  } finally {
+    descargando.ventas = false
+  }
 }
 
 // --- REPORTE 3: CONSOLIDADO DE CARTERA (DEUDORES) ---
 const descargarDeudores = async (formato) => {
+  descargando.deudores = true
   try {
-    const token = localStorage.getItem('token')
     const endpoint = formato === 'excel' ? 'deudores-excel' : 'deudores-pdf'
     const ext = formato === 'excel' ? 'xlsx' : 'pdf'
 
-    const res = await axios.get(`http://127.0.0.1:8000/clientes/global/${endpoint}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      responseType: 'blob'
-    })
-
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `Consolidado_Deudores_Cartera.${ext}`)
-    document.body.appendChild(link)
-    link.click()
-    window.URL.revokeObjectURL(url)
-  } catch (e) { alert("Error al descargar el listado consolidado de deudores.") }
+    const res = await api.get(`/clientes/global/${endpoint}`, { responseType: 'blob' })
+    dispararDescarga(res.data, `Consolidado_Deudores_Cartera.${ext}`)
+    showToast(`Consolidado de deudores descargado en ${formato.toUpperCase()} correctamente.`, 'success')
+  } catch (e) {
+    showToast('Error al descargar el consolidado de deudores. Intenta de nuevo.', 'error')
+  } finally {
+    descargando.deudores = false
+  }
 }
 </script>
