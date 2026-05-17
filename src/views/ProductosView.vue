@@ -17,7 +17,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-4xl">
           <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-blue-500">
             <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Productos (Catálogo)</p>
-            <p class="text-3xl font-bold text-slate-800 mt-2">{{ listaProductos.length }}</p>
+            <p class="text-3xl font-bold text-slate-800 mt-2">{{ productosFiltrados.length }}</p>
           </div>
           <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-red-500">
             <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Productos en Stock Crítico (≤ 5)</p>
@@ -30,7 +30,7 @@
           <div class="p-6 border-b border-gray-200 flex justify-between items-center bg-white">
             <div class="relative w-72">
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
-              <input type="text" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+              <input type="text" v-model="busqueda" placeholder="Buscar producto por nombre..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
             </div>
             <button @click="isModalOpen = true" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center shadow-sm">
               <span class="mr-2">+</span> Nuevo Producto
@@ -42,7 +42,7 @@
               <thead>
                 <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
                   <th class="px-6 py-4 font-medium">Producto</th>
-                  <th class="px-6 py-4 font-medium">Categoría (ID)</th>
+                  <th class="px-6 py-4 font-medium">Categoría</th>
                   <th class="px-6 py-4 font-medium">Precio Venta</th>
                   <th class="px-6 py-4 font-medium">Stock</th>
                   <th class="px-6 py-4 font-medium">Estado</th>
@@ -50,13 +50,15 @@
                 </tr>
               </thead>
               <tbody class="text-sm text-gray-700 divide-y divide-gray-200">
-                <tr v-for="producto in listaProductos" :key="producto.id" class="hover:bg-gray-50 transition">
+                <tr v-for="producto in productosFiltrados" :key="producto.id" class="hover:bg-gray-50 transition">
                   <td class="px-6 py-4">
                     <p class="font-semibold text-slate-900">{{ producto.nombre }}</p>
                     <p class="text-xs text-gray-500">ID: {{ producto.id }}</p>
                   </td>
                   <td class="px-6 py-4">
-                    <span class="bg-blue-100 text-blue-700 py-1 px-2 rounded-md text-xs font-medium">Cat: {{ producto.categoria_id }}</span>
+                    <span class="bg-blue-100 text-blue-700 py-1 px-2 rounded-md text-xs font-bold">
+                      {{ getNombreCategoria(producto.categoria_id) }}
+                    </span>
                   </td>
                   <td class="px-6 py-4 font-medium">${{ parseFloat(producto.precio_venta).toLocaleString() }}</td>
                   <td class="px-6 py-4 font-bold" :class="producto.stock <= 5 ? 'text-red-600' : 'text-slate-700'">
@@ -74,9 +76,9 @@
                     <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition">🗑️</button>
                   </td>
                 </tr>
-                <tr v-if="listaProductos.length === 0">
+                <tr v-if="productosFiltrados.length === 0">
                   <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                    No hay productos registrados en el inventario.
+                    No se encontraron productos registrados en el inventario.
                   </td>
                 </tr>
               </tbody>
@@ -240,16 +242,17 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '../api/axios' // MODIFICADO: Importamos nuestra instancia centralizada
 import Sidebar from '../components/Sidebar.vue'
 import { useToast } from '../composables/useToast' 
 
-const isModalOpen = ref(false)
+const busqueda = ref('')
 const listaProductos = ref([])
 const listaCategorias = ref([])
 const listaProveedores = ref([]) 
 const { showToast } = useToast() 
 
+const isModalOpen = ref(false)
 const isSavingProducto = ref(false)
 const isSavingCategoria = ref(false)
 const isSavingProveedor = ref(false)
@@ -265,13 +268,26 @@ const formProveedorRapido = ref({ nombre_empresa: '', nit: '', contacto: '', des
 
 const nuevoProducto = ref({ nombre: '', descripcion: '', precio_costo: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' })
 
+// --- MODIFICADO: COMPUTADOS BLINDADOS CONTRA ARREGLOS VACÍOS U UNDEFINED ---
+const productosFiltrados = computed(() => {
+  if (!listaProductos.value || !Array.isArray(listaProductos.value)) return []
+  if (!busqueda.value) return listaProductos.value
+  return listaProductos.value.filter(p => p.nombre.toLowerCase().includes(busqueda.value.toLowerCase()))
+})
+
 const productosEnPeligro = computed(() => {
+  if (!listaProductos.value || !Array.isArray(listaProductos.value)) return 0
   return listaProductos.value.filter(p => p.stock <= 5).length
 })
 
-// ==========================================
-// 🔥 NUEVO: FUNCIONES DE CIERRE CON RESETEO (PUNTO 4)
-// ==========================================
+// --- RESOLVER NOMBRE DE CATEGORÍA ---
+const getNombreCategoria = (id) => {
+  if (!listaCategorias.value || !Array.isArray(listaCategorias.value)) return `#${id}`
+  const cat = listaCategorias.value.find(c => c.id === id)
+  return cat ? cat.nombre : `#${id}`
+}
+
+// --- FUNCIONES DE CIERRE CON RESETEO ---
 const cerrarModalProducto = () => {
   isModalOpen.value = false
   nuevoProducto.value = { nombre: '', descripcion: '', precio_costo: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
@@ -286,28 +302,25 @@ const cerrarModalProveedor = () => {
   isProveedorRapidoOpen.value = false
   formProveedorRapido.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
 }
-// ==========================================
 
+// --- CARGA DE DATOS CENTRALIZADA ---
 const cargarProductos = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/productos/', { headers: { 'Authorization': `Bearer ${token}` } })
+    const res = await api.get('/productos/')
     listaProductos.value = res.data
   } catch (error) { console.error(error) }
 }
 
 const cargarCategorias = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/categorias/', { headers: { 'Authorization': `Bearer ${token}` } })
+    const res = await api.get('/categorias/')
     listaCategorias.value = res.data
   } catch (error) { console.error(error) }
 }
 
 const cargarProveedores = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/proveedores/', { headers: { 'Authorization': `Bearer ${token}` } })
+    const res = await api.get('/proveedores/')
     listaProveedores.value = res.data
   } catch (error) { console.error(error) }
 }
@@ -320,10 +333,7 @@ const guardarCategoriaRapida = async () => {
   
   isSavingCategoria.value = true 
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.post('http://127.0.0.1:8000/categorias/', formCategoriaRapida.value, { 
-      headers: { 'Authorization': `Bearer ${token}` } 
-    })
+    const res = await api.post('/categorias/', formCategoriaRapida.value)
     listaCategorias.value.push(res.data)
     nuevoProducto.value.categoria_id = res.data.id
     isCategoriaRapidaOpen.value = false
@@ -333,7 +343,7 @@ const guardarCategoriaRapida = async () => {
     console.error(error)
     showToast("Error al crear la categoría. Es posible que el nombre ya exista.", "error") 
   } finally {
-    isSavingCategoria.value = false 
+    isSavingCategoria.value = false
   }
 }
 
@@ -345,7 +355,6 @@ const guardarProveedorRapido = async () => {
   
   isSavingProveedor.value = true 
   try {
-    const token = localStorage.getItem('token')
     const nitFinal = formProveedorRapido.value.nit && formProveedorRapido.value.nit.trim() !== '' 
                      ? formProveedorRapido.value.nit 
                      : `S/N-${Date.now().toString().slice(-6)}`
@@ -357,16 +366,13 @@ const guardarProveedorRapido = async () => {
       descripcion: formProveedorRapido.value.descripcion || 'Creado desde acceso rápido'
     }
     
-    const res = await axios.post('http://127.0.0.1:8000/proveedores/', payload, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
+    const res = await api.post('/proveedores/', payload)
     listaProveedores.value.push(res.data)
     nuevoProducto.value.proveedor_id = res.data.id 
     
     isProveedorRapidoOpen.value = false
     formProveedorRapido.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
-    showToast("Proveedor rápido creado e insertada.", "success")
+    showToast("Proveedor rápido creado e insertado.", "success")
   } catch (error) {
     console.error(error)
     showToast("Error al registrar proveedor rápido. Es posible que este NIT ya exista.", "error")
@@ -378,7 +384,6 @@ const guardarProveedorRapido = async () => {
 const guardarProducto = async () => {
   isSavingProducto.value = true 
   try {
-    const token = localStorage.getItem('token')
     const specs = {}
     if (nuevoProducto.value.color) specs.color = nuevoProducto.value.color
     if (nuevoProducto.value.talla) specs.talla = nuevoProducto.value.talla
@@ -394,9 +399,8 @@ const guardarProducto = async () => {
       especificaciones: specs 
     }
 
-    await axios.post('http://127.0.0.1:8000/productos/', datosEnvio, { headers: { 'Authorization': `Bearer ${token}` } })
+    await api.post('/productos/', datosEnvio)
     isModalOpen.value = false
-    // CORREGIDO: Reseteo correcto a 'categoria_id' para evitar desalineación reactiva
     nuevoProducto.value = { nombre: '', descripcion: '', precio_costo: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
     showToast(`Producto '${datosEnvio.nombre}' registrado con éxito.`, "success")
     cargarProductos()
@@ -410,8 +414,7 @@ const guardarProducto = async () => {
 const eliminarProducto = async (id) => {
   if(!confirm("¿Estás seguro de eliminar este producto?")) return;
   try {
-    const token = localStorage.getItem('token')
-    await axios.delete(`http://127.0.0.1:8000/productos/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+    await api.delete(`/productos/${id}`)
     showToast("Producto eliminado del inventario correctamente.", "success")
     cargarProductos() 
   } catch (error) { 

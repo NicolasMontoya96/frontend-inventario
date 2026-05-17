@@ -233,7 +233,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios' 
+import api from '../api/axios' // MODIFICADO: Importamos nuestra instancia centralizada
 import Sidebar from '../components/Sidebar.vue'
 import { useToast } from '../composables/useToast'
 
@@ -259,31 +259,24 @@ const inicialUsuario = computed(() => nombreUsuario.value ? nombreUsuario.value.
 const formCliente = ref({ nombre: '', apellido: '', email: '', telefono: '', saldo_deuda: 0 })
 const montoAbono = ref(null)
 
-// =======================================================
-// ⭐ CAPA DE PROTECCIÓN: VALIDACIONES REACTIVAS EN VIVO
-// =======================================================
+// --- CAPA DE PROTECCIÓN: VALIDACIONES REACTIVAS EN VIVO ---
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const isFormClienteInvalido = computed(() => {
   const nombre = formCliente.value.nombre ? formCliente.value.nombre.trim() : ''
   const email = formCliente.value.email ? formCliente.value.email.trim() : ''
   const saldo = parseFloat(formCliente.value.saldo_deuda || 0)
-  
-  // Si falta nombre, correo, el correo no tiene @ o meten saldo negativo -> Inválido (True)
   return !nombre || !email || !emailRegex.test(email) || saldo < 0
 })
 
 const isMontoAbonoInvalido = computed(() => {
   const monto = parseFloat(montoAbono.value || 0)
   if (monto <= 0) return true
-  
-  // Si hay un cliente cargado, bloquea si el abono supera la deuda real
   if (clienteSeleccionado.value && monto > parseFloat(clienteSeleccionado.value.saldo_deuda || 0)) {
     return true
   }
   return false
 })
-// =======================================================
 
 // --- COMPUTADOS ---
 const clientesFiltrados = computed(() => {
@@ -303,16 +296,13 @@ const procesarAbonoCliente = async () => {
 
   isSavingAbono.value = true 
   try {
-    const token = localStorage.getItem('token')
-    
     const payload = {
       cliente_id: clienteSeleccionado.value.id,
       monto_pagado: parseFloat(montoAbono.value)
     }
 
-    await axios.post('http://127.0.0.1:8000/clientes/abonos', payload, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    // MODIFICADO: Sin token ni URL absoluta manual
+    await api.post('/clientes/abonos', payload)
 
     showToast(`¡Abono de $${payload.monto_pagado.toLocaleString()} procesado con éxito!`, "success")
     
@@ -364,19 +354,17 @@ const guardarCliente = async () => {
     showToast("Por favor, rellena los campos obligatorios correctamente.", "warning")
     return
   }
-
-  const token = localStorage.getItem('token')
-  const config = { headers: { 'Authorization': `Bearer ${token}` } }
   
   isSavingCliente.value = true 
   try {
     if (isEditing.value) {
       const datosEnvio = { nombre: formCliente.value.nombre, apellido: formCliente.value.apellido || null, email: formCliente.value.email, telefono: formCliente.value.telefono || null }
-      await axios.patch(`http://127.0.0.1:8000/clientes/${idClienteEditando.value}`, datosEnvio, config)
+      // MODIFICADO: Endpoints cortos de la instancia centralizada
+      await api.patch(`/clientes/${idClienteEditando.value}`, datosEnvio)
       showToast("Perfil de cliente actualizado con éxito.", "success")
     } else {
       const datosEnvio = { nombre: formCliente.value.nombre, apellido: formCliente.value.apellido || null, email: formCliente.value.email, telefono: formCliente.value.telefono || null, saldo_deuda: parseFloat(formCliente.value.saldo_deuda || 0) }
-      await axios.post('http://127.0.0.1:8000/clientes/', datosEnvio, config)
+      await api.post('/clientes/', datosEnvio)
       showToast(`Cliente '${datosEnvio.nombre}' registrado correctamente.`, "success")
     }
     isFormModalOpen.value = false
@@ -390,16 +378,12 @@ const guardarCliente = async () => {
 
 const exportarReporte = async (formato) => {
   try {
-    const token = localStorage.getItem('token')
     const id = clienteSeleccionado.value.id
-    
     const endpoint = formato === 'excel' ? 'reporte-excel' : 'reporte-pdf'
     const extension = formato === 'excel' ? 'xlsx' : 'pdf'
     
-    const res = await axios.get(`http://127.0.0.1:8000/clientes/${id}/${endpoint}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      responseType: 'blob' 
-    })
+    // MODIFICADO: Llamada limpia con responseType para blobs
+    const res = await api.get(`/clientes/${id}/${endpoint}`, { responseType: 'blob' })
 
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const link = document.createElement('a')
@@ -423,22 +407,21 @@ const abrirHistorialCompleto = async (cliente) => {
   ventasCliente.value = []
   abonosCliente.value = []
 
-  const token = localStorage.getItem('token')
-  const config = { headers: { 'Authorization': `Bearer ${token}` } }
   try {
-    const resVentas = await axios.get('http://127.0.0.1:8000/ventas/', config)
+    // MODIFICADO: Peticiones concurrentes ultra cortas
+    const resVentas = await api.get('/ventas/')
     ventasCliente.value = resVentas.data.filter(v => v.cliente_id === cliente.id)
   } catch (e) {}
   try {
-    const resAbonos = await axios.get(`http://127.0.0.1:8000/clientes/${cliente.id}/abonos`, config)
+    const resAbonos = await api.get(`/clientes/${cliente.id}/abonos`)
     abonosCliente.value = resAbonos.data
   } catch (e) {}
 }
 
 const cargarClientes = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/clientes/', { headers: { 'Authorization': `Bearer ${token}` } })
+    // MODIFICADO: Petición limpia interceptada
+    const res = await api.get('/clientes/')
     listaClientes.value = res.data
   } catch (e) {}
 }

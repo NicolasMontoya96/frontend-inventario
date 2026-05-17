@@ -34,25 +34,25 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
+import api from '../api/axios' // MODIFICADO: Ahora importamos nuestro cliente centralizado en vez de axios crudo
 import { useRouter } from 'vue-router' 
-import { useToast } from '../composables/useToast' // INYECTADO: Sistema de Toasts flotantes
+import { useToast } from '../composables/useToast' 
 
 const router = useRouter() 
-const { showToast } = useToast() // INYECTADO: Instancia del disparador de notificaciones
+const { showToast } = useToast() 
 
 const credentials = ref({ username: '', password: '' })
-// INYECTADO: Variable de control reactivo para bloquear el formulario mientras Axios consulta con FastAPI
 const isSubmitting = ref(false)
 
 const handleLogin = async () => {
-  isSubmitting.value = true // Congela el botón e inicia el Spinner animado
+  isSubmitting.value = true 
   try {
     const formData = new URLSearchParams()
     formData.append('username', credentials.value.username)
     formData.append('password', credentials.value.password)
 
-    const respuesta = await axios.post('http://127.0.0.1:8000/autenticacion/login', formData, {
+    // MODIFICADO: Usamos 'api' directamente y ya sabe a qué URL pegarle automáticamente
+    const respuesta = await api.post('/autenticacion/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
 
@@ -60,18 +60,14 @@ const handleLogin = async () => {
     localStorage.setItem('token', token)
     localStorage.setItem('usuario', credentials.value.username)
     
-    // Mostramos un mensaje de bienvenida dinámico e inmediato
     showToast(`¡Bienvenido de nuevo, ${credentials.value.username}! Sincronizando balances contables...`, "success")
-    
-    // Viajamos al dashboard de forma fluida
     router.push('/dashboard')
 
   } catch (error) {
     console.error("Error al iniciar sesión:", error)
-    // REEMPLAZADO: Cambiamos el alert gris por un Toast destructivo con fondo contable adaptado
     showToast("Acceso denegado: Usuario o contraseña incorrectos.", "error")
   } finally {
-    isSubmitting.value = false // Libera el bloqueo del botón si hay un fallo
+    isSubmitting.value = false 
   }
 }
 </script>
