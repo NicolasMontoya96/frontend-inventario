@@ -135,7 +135,7 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Precio de Costo *</label>
               <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
-                <input type="number" step="0.01" v-model="nuevoProducto.precio_costo" required placeholder="A cómo compras" class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm font-semibold text-slate-800">
+                <input type="number" step="0.01" v-model="nuevoProducto.precio_compra" required placeholder="A cómo compras" class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm font-semibold text-slate-800">
               </div>
             </div>
             <div>
@@ -266,7 +266,7 @@ const formCategoriaRapida = ref({ nombre: '', descripcion: 'Creada desde product
 const isProveedorRapidoOpen = ref(false)
 const formProveedorRapido = ref({ nombre_empresa: '', nit: '', contacto: '', descripcion: '' })
 
-const nuevoProducto = ref({ nombre: '', descripcion: '', precio_costo: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' })
+const nuevoProducto = ref({ nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' })
 
 // --- MODIFICADO: COMPUTADOS BLINDADOS CONTRA ARREGLOS VACÍOS U UNDEFINED ---
 const productosFiltrados = computed(() => {
@@ -300,7 +300,7 @@ const getNombreCategoria = (producto) => {
 // --- FUNCIONES DE CIERRE CON RESETEO ---
 const cerrarModalProducto = () => {
   isModalOpen.value = false
-  nuevoProducto.value = { nombre: '', descripcion: '', precio_costo: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
+  nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
 }
 
 const cerrarModalCategoria = () => {
@@ -401,7 +401,7 @@ const guardarProducto = async () => {
     const datosEnvio = {
       nombre: nuevoProducto.value.nombre,
       descripcion: nuevoProducto.value.descripcion || null,
-      precio_costo: parseFloat(nuevoProducto.value.precio_costo),
+      precio_compra: parseFloat(nuevoProducto.value.precio_compra),
       precio_venta: parseFloat(nuevoProducto.value.precio_venta),
       stock: parseInt(nuevoProducto.value.stock),
       categoria_id: parseInt(nuevoProducto.value.categoria_id),
@@ -411,7 +411,7 @@ const guardarProducto = async () => {
 
     await api.post('/productos/', datosEnvio)
     isModalOpen.value = false
-    nuevoProducto.value = { nombre: '', descripcion: '', precio_costo: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
+    nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
     showToast(`Producto '${datosEnvio.nombre}' registrado con éxito.`, "success")
     cargarProductos()
   } catch (error) { 
