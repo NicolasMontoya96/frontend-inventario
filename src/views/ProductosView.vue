@@ -282,6 +282,7 @@ const productosEnPeligro = computed(() => {
 
 // --- RESOLVER NOMBRE DE CATEGORÍA ---
 const getNombreCategoria = (producto) => {
+  console.log("Datos del producto:", producto)
   // 1. Cazamos el ID en las 3 formas más comunes en las que FastAPI lo puede devolver
   const id = producto.categoria_id || producto.category_id || (producto.categoria && producto.categoria.id)
   
