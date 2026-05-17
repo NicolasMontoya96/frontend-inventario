@@ -88,7 +88,7 @@
               Pago: {{ ventaSeleccionada.metodo_pago }}
             </p>
           </div>
-          <button @click="isDetalleOpen = false" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
+          <button @click="cerrarModalDetalle" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
         </div>
         
         <div class="p-6">
@@ -126,7 +126,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '../api/axios' // MODIFICADO: Cliente de red centralizado
 import Sidebar from '../components/Sidebar.vue'
 
 const listaVentas = ref([])
@@ -136,8 +136,11 @@ const busqueda = ref('')
 const isDetalleOpen = ref(false)
 const ventaSeleccionada = ref(null)
 
+// --- MODIFICADO: Blindaje de computados para evitar caídas si la API demora ---
 const movimientosFiltrados = computed(() => {
+  if (!listaVentas.value || !Array.isArray(listaVentas.value)) return []
   if (!busqueda.value) return listaVentas.value
+  
   const termino = busqueda.value.toLowerCase().trim()
   return listaVentas.value.filter(v => {
     if (!v.cliente) return String(v.cliente_id).includes(termino)
@@ -155,25 +158,30 @@ const abrirDetalle = (venta) => {
   isDetalleOpen.value = true
 }
 
+const cerrarModalDetalle = () => {
+  isDetalleOpen.value = false
+  ventaSeleccionada.value = null
+}
+
 const getNombreProducto = (id) => {
+  if (!listaProductos.value || !Array.isArray(listaProductos.value)) return `Producto #${id}`
   const prod = listaProductos.value.find(p => p.id === id)
   return prod ? prod.nombre : `Producto #${id}`
 }
 
 const cargarHistorialGeneral = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const config = { headers: { 'Authorization': `Bearer ${token}` } }
-    
-    // Traemos también los productos para poder traducir el ID en el modal
+    // MODIFICADO: Llamada limpia a la API sin inyectar tokens manualmente ni URLs hardcodeadas
     const [resVentas, resProductos] = await Promise.all([
-      axios.get('http://127.0.0.1:8000/ventas/', config),
-      axios.get('http://127.0.0.1:8000/productos/', config)
+      api.get('/ventas/'),
+      api.get('/productos/')
     ])
     
     listaVentas.value = resVentas.data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
     listaProductos.value = resProductos.data
-  } catch (error) { console.error("Error cargando la auditoría:", error) }
+  } catch (error) { 
+    console.error("Error cargando la auditoría:", error) 
+  }
 }
 
 const formatearFecha = (fechaStr) => {
@@ -181,5 +189,7 @@ const formatearFecha = (fechaStr) => {
   return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-onMounted(() => { cargarHistorialGeneral() })
+onMounted(() => { 
+  cargarHistorialGeneral() 
+})
 </script>

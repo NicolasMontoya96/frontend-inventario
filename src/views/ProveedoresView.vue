@@ -51,22 +51,18 @@
                   </td>
                   <td class="px-6 py-4 font-mono text-slate-600">{{ prov.nit }}</td>
                   <td class="px-6 py-4 text-slate-700">{{ prov.contacto || 'No registrado' }}</td>
-                  
                   <td class="px-6 py-4 text-center">
                     <button @click="abrirHistorialCompras(prov)" title="Ver Historial de Facturas" class="text-blue-600 hover:text-blue-800 p-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-sm font-semibold border border-blue-100 shadow-sm">
                       👁️ Ver Facturas
                     </button>
                   </td>
-
                   <td class="px-6 py-4 text-right space-x-3">
                     <button class="text-slate-400 hover:text-slate-800 transition text-lg">✏️</button>
                     <button @click="eliminarProveedor(prov.id)" class="text-slate-400 hover:text-red-600 transition text-lg">🗑️</button>
                   </td>
                 </tr>
                 <tr v-if="proveedoresFiltrados.length === 0">
-                  <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                    No hay proveedores registrados.
-                  </td>
+                  <td colspan="5" class="px-6 py-8 text-center text-gray-500">No hay proveedores registrados.</td>
                 </tr>
               </tbody>
             </table>
@@ -75,6 +71,7 @@
       </main>
     </div>
 
+    <!-- MODAL NUEVO PROVEEDOR -->
     <div v-if="isModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
@@ -101,13 +98,20 @@
             <textarea v-model="nuevoProveedor.descripcion" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"></textarea>
           </div>
           <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 mt-2">
-            <button type="button" @click="isModalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</button>
-            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition">Guardar</button>
+            <button type="button" @click="isModalOpen = false" :disabled="isSaving" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">Cancelar</button>
+            <button type="submit" :disabled="isSaving" class="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition flex items-center disabled:bg-slate-700 disabled:cursor-not-allowed">
+              <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ isSaving ? 'Guardando...' : 'Guardar' }}
+            </button>
           </div>
         </form>
       </div>
     </div>
 
+    <!-- MODAL HISTORIAL DE COMPRAS -->
     <div v-if="isHistorialOpen && proveedorSeleccionado" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-full">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
@@ -130,7 +134,6 @@
             </thead>
             <tbody class="text-gray-700">
               <template v-for="compra in comprasDelProveedor" :key="compra.id">
-                
                 <tr @click="toggleFactura(compra.id)" class="border-b border-gray-100 hover:bg-slate-100/80 cursor-pointer transition">
                   <td class="px-4 py-3.5 text-gray-500 flex items-center select-none font-medium">
                     <span class="mr-2 text-xs transition-transform duration-200 inline-block text-slate-400"
@@ -168,7 +171,6 @@
                     </div>
                   </td>
                 </tr>
-
               </template>
 
               <tr v-if="comprasDelProveedor.length === 0">
@@ -180,9 +182,7 @@
 
         <div class="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
           <span class="text-sm font-bold text-gray-500 uppercase tracking-wider">Inversión Total Histórica:</span>
-          <span class="text-2xl font-black text-slate-900">
-            ${{ totalInvertido.toLocaleString() }}
-          </span>
+          <span class="text-2xl font-black text-slate-900">${{ totalInvertido.toLocaleString() }}</span>
         </div>
       </div>
     </div>
@@ -192,38 +192,38 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '../api/axios' // ✅ Instancia centralizada con token automático
 import Sidebar from '../components/Sidebar.vue'
+import { useToast } from '../composables/useToast'
+
+const { showToast } = useToast()
 
 const listaProveedores = ref([])
-const listaProductos = ref([]) // Guardará el catálogo para traducir los nombres
+const listaProductos = ref([])
 const busqueda = ref('')
 const isModalOpen = ref(false)
+const isSaving = ref(false)
 
-// Estados para el Modal de Historial
 const isHistorialOpen = ref(false)
 const proveedorSeleccionado = ref(null)
 const comprasDelProveedor = ref([])
-const facturaExpandidaId = ref(null) // Controla cuál fila está abierta
+const facturaExpandidaId = ref(null)
 
 const nuevoProveedor = ref({ nombre_empresa: '', nit: '', contacto: '', descripcion: '' })
 
-// --- COMPUTADOS ---
 const proveedoresFiltrados = computed(() => {
   if (!busqueda.value) return listaProveedores.value
   const query = busqueda.value.toLowerCase()
-  return listaProveedores.value.filter(p => 
+  return listaProveedores.value.filter(p =>
     p.nombre_empresa.toLowerCase().includes(query) || p.nit.includes(query)
   )
 })
 
-const totalInvertido = computed(() => {
-  return comprasDelProveedor.value.reduce((sum, compra) => sum + parseFloat(compra.total || 0), 0)
-})
+const totalInvertido = computed(() =>
+  comprasDelProveedor.value.reduce((sum, compra) => sum + parseFloat(compra.total || 0), 0)
+)
 
-// --- FUNCIONES ---
 const toggleFactura = (id) => {
-  // Si da clic en la que ya está abierta, la cierra. Si da clic en otra, abre la otra.
   facturaExpandidaId.value = facturaExpandidaId.value === id ? null : id
 }
 
@@ -232,53 +232,52 @@ const getNombreProducto = (id) => {
   return prod ? prod.nombre : `Producto ID: #${id}`
 }
 
+const formatearFecha = (fechaStr) => {
+  if (!fechaStr) return '-'
+  return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+// ✅ Sin token manual, sin URL hardcodeada
 const cargarProductos = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/productos/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await api.get('/productos/')
     listaProductos.value = res.data
-  } catch (error) { console.error("Error al cargar productos catálogo:", error) }
+  } catch (error) {
+    console.error("Error al cargar productos catálogo:", error)
+  }
 }
 
 const cargarProveedores = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/proveedores/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    const res = await api.get('/proveedores/')
     listaProveedores.value = res.data
-  } catch (error) { console.error("Error al cargar proveedores:", error) }
+  } catch (error) {
+    console.error("Error al cargar proveedores:", error)
+  }
 }
 
 const abrirHistorialCompras = async (proveedor) => {
   proveedorSeleccionado.value = proveedor
   isHistorialOpen.value = true
   comprasDelProveedor.value = []
-  facturaExpandidaId.value = null // Reseteamos el acordeón
+  facturaExpandidaId.value = null
 
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/compras/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
+    const res = await api.get('/compras/')
     comprasDelProveedor.value = res.data
       .filter(c => c.proveedor_id === proveedor.id)
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-
   } catch (error) {
     console.error("Error al cargar el historial de compras del proveedor:", error)
   }
 }
 
 const guardarProveedor = async () => {
+  isSaving.value = true
   try {
-    const token = localStorage.getItem('token')
-    const nitFinal = nuevoProveedor.value.nit && nuevoProveedor.value.nit.trim() !== '' 
-                     ? nuevoProveedor.value.nit 
-                     : `S/N-${Date.now().toString().slice(-6)}`
+    const nitFinal = nuevoProveedor.value.nit && nuevoProveedor.value.nit.trim() !== ''
+      ? nuevoProveedor.value.nit
+      : `S/N-${Date.now().toString().slice(-6)}`
 
     const payload = {
       nombre_empresa: nuevoProveedor.value.nombre_empresa,
@@ -287,34 +286,32 @@ const guardarProveedor = async () => {
       descripcion: nuevoProveedor.value.descripcion || null
     }
 
-    await axios.post('http://127.0.0.1:8000/proveedores/', payload, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
+    await api.post('/proveedores/', payload) // ✅ Limpio
+
+    showToast(`Proveedor '${payload.nombre_empresa}' registrado con éxito.`, "success")
     isModalOpen.value = false
     nuevoProveedor.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
     cargarProveedores()
-  } catch (error) { alert("Error al guardar proveedor. Verifica que el NIT no exista ya.") }
+  } catch (error) {
+    showToast(error.response?.data?.detail || "Error al guardar proveedor. Verifica que el NIT no exista ya.", "error")
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const eliminarProveedor = async (id) => {
   if (!confirm("¿Estás seguro de eliminar este proveedor?")) return
   try {
-    const token = localStorage.getItem('token')
-    await axios.delete(`http://127.0.0.1:8000/proveedores/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete(`/proveedores/${id}`) // ✅ Limpio
+    showToast("Proveedor eliminado correctamente.", "success")
     cargarProveedores()
-  } catch (error) { alert("No se pudo eliminar.") }
+  } catch (error) {
+    showToast(error.response?.data?.detail || "No se pudo eliminar. Puede tener compras asociadas.", "error")
+  }
 }
 
-const formatearFecha = (fechaStr) => {
-  if (!fechaStr) return '-'
-  return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-onMounted(() => { 
-  cargarProveedores() 
-  cargarProductos() // Cargamos el catálogo al entrar a la vista
+onMounted(() => {
+  cargarProveedores()
+  cargarProductos()
 })
 </script>

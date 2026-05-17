@@ -77,11 +77,10 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '../api/axios' // ✅ Instancia centralizada con token automático
 import Sidebar from '../components/Sidebar.vue'
-import { useToast } from '../composables/useToast' // INYECTADO: Importación de Toasts globales
+import { useToast } from '../composables/useToast'
 
-// --- Componentes e Inyecciones de Chart.js ---
 import { Line } from 'vue-chartjs'
 import { 
   Chart as ChartJS, 
@@ -99,58 +98,45 @@ ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement,
 const listaVentas = ref([])
 const listaProductos = ref([])
 const listaClientes = ref([]) 
-const { showToast } = useToast() // INYECTADO: Instancia del disparador de notificaciones
-
-// INYECTADO: Variable reactiva para controlar el estado de carga de la pantalla
+const { showToast } = useToast()
 const isLoading = ref(true)
 
-// --- DATOS DE USUARIO PARA EL TOP BAR ---
 const nombreUsuario = ref('Admin')
 const inicialUsuario = computed(() => nombreUsuario.value ? nombreUsuario.value.charAt(0).toUpperCase() : 'A')
 
-// --- CÁLCULOS FINANCIEROS AJUSTADOS AL ESCENARIO REAL ---
 const totalFacturado = computed(() => listaVentas.value.reduce((sum, v) => sum + parseFloat(v.total_venta || 0), 0))
 const totalEnDeuda = computed(() => listaClientes.value.reduce((sum, c) => sum + parseFloat(c.saldo_deuda || 0), 0))
 const totalRecaudado = computed(() => totalFacturado.value - totalEnDeuda.value)
-
 const productosEnPeligro = computed(() => listaProductos.value.filter(p => p.stock <= 5).length)
 
-// --- PROCESAMIENTO CORREGIDO PARA EL GRÁFICO (MÉTODO LOCAL TIME COLOMBIA) ---
 const chartData = computed(() => {
   const mapeoFechas = {}
-
   const ventasOrdenadas = [...listaVentas.value].sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
 
   ventasOrdenadas.forEach(v => {
     if (!v.fecha) return
-    
     const dateObj = new Date(v.fecha)
     const anio = dateObj.getFullYear()
     const mes = String(dateObj.getMonth() + 1).padStart(2, '0')
     const dia = String(dateObj.getDate()).padStart(2, '0')
     const diaString = `${anio}-${mes}-${dia}`
-    
-    if (!mapeoFechas[diaString]) {
-      mapeoFechas[diaString] = 0
-    }
+    if (!mapeoFechas[diaString]) mapeoFechas[diaString] = 0
     mapeoFechas[diaString] += parseFloat(v.total_venta || 0)
   })
 
   return {
     labels: Object.keys(mapeoFechas), 
-    datasets: [
-      {
-        label: 'Ventas Diarias ($)',
-        backgroundColor: '#3b82f6', 
-        borderColor: '#1e293b',     
-        pointBackgroundColor: '#3b82f6',
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        borderWidth: 3,
-        tension: 0.2, 
-        data: Object.values(mapeoFechas) 
-      }
-    ]
+    datasets: [{
+      label: 'Ventas Diarias ($)',
+      backgroundColor: '#3b82f6', 
+      borderColor: '#1e293b',     
+      pointBackgroundColor: '#3b82f6',
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      borderWidth: 3,
+      tension: 0.2, 
+      data: Object.values(mapeoFechas) 
+    }]
   }
 })
 
@@ -176,17 +162,14 @@ const chartOptions = {
   }
 }
 
-// --- CARGA SIMULTÁNEA DE MÉTRICAS COMPLETA ---
 const cargarMetricas = async () => {
-  isLoading.value = true // Activa el esqueleto de carga antes de arrancar
+  isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const config = { headers: { 'Authorization': `Bearer ${token}` } }
-    
+    // ✅ Sin token manual, sin URL hardcodeada — el interceptor lo hace solo
     const [resVentas, resProductos, resClientes] = await Promise.all([
-      axios.get('http://127.0.0.1:8000/ventas/', config),
-      axios.get('http://127.0.0.1:8000/productos/', config),
-      axios.get('http://127.0.0.1:8000/clientes/', config)
+      api.get('/ventas/'),
+      api.get('/productos/'),
+      api.get('/clientes/')
     ])
     
     listaVentas.value = resVentas.data
@@ -194,7 +177,6 @@ const cargarMetricas = async () => {
     listaClientes.value = resClientes.data
   } catch (error) {
     console.error("Error al cargar métricas del Dashboard:", error)
-    // INYECTADO: Toast informativo si la API de FastAPI no responde
     showToast("Error de comunicación: No se pudieron sincronizar los datos de negocio.", "error")
   } finally {
     isLoading.value = false 
@@ -203,10 +185,7 @@ const cargarMetricas = async () => {
 
 onMounted(() => {
   cargarMetricas()
-  
   const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('username') || localStorage.getItem('nombre')
-  if (usuarioGuardado) {
-    nombreUsuario.value = usuarioGuardado
-  }
+  if (usuarioGuardado) nombreUsuario.value = usuarioGuardado
 })
 </script>

@@ -87,9 +87,13 @@
               <span class="text-gray-500 font-medium">Costo Total:</span>
               <span class="text-2xl font-black text-slate-900">${{ totalCompra.toLocaleString() }}</span>
             </div>
-            <button @click="procesarCompra" :disabled="loteCompra.length === 0 || !compra.proveedor_id" 
+            <button @click="procesarCompra" :disabled="loteCompra.length === 0 || !compra.proveedor_id || isProcessingCompra"
                     class="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg flex justify-center items-center text-sm">
-              Registrar Entrada de Mercancía ➔
+              <svg v-if="isProcessingCompra" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ isProcessingCompra ? 'Registrando...' : 'Registrar Entrada de Mercancía ➔' }}
             </button>
           </div>
         </aside>
@@ -127,6 +131,9 @@
                     👁️
                   </button>
                 </td>
+              </tr>
+              <tr v-if="historialCompras.length === 0">
+                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No se han registrado compras en el sistema todavía.</td>
               </tr>
             </tbody>
           </table>
@@ -176,18 +183,21 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '../api/axios' // ✅ Instancia centralizada con token automático
 import Sidebar from '../components/Sidebar.vue'
+import { useToast } from '../composables/useToast'
 
-const pestanaActual = ref('abastecer') 
+const { showToast } = useToast()
+
+const pestanaActual = ref('abastecer')
 const listaProductos = ref([])
 const listaProveedores = ref([])
 const historialCompras = ref([])
 const loteCompra = ref([])
 const busquedaProducto = ref('')
 const compra = ref({ proveedor_id: '', numero_factura: '' })
+const isProcessingCompra = ref(false) // ✅ Spinner en el botón
 
-// Lógica del Modal de Detalles
 const isDetalleOpen = ref(false)
 const compraSeleccionada = ref(null)
 
@@ -196,17 +206,26 @@ const productosFiltrados = computed(() => {
   return listaProductos.value.filter(p => p.nombre.toLowerCase().includes(busquedaProducto.value.toLowerCase()))
 })
 
-const totalCompra = computed(() => loteCompra.value.reduce((total, item) => total + (parseFloat(item.precio_compra || 0) * parseInt(item.cantidad || 0)), 0))
+const totalCompra = computed(() =>
+  loteCompra.value.reduce((total, item) => total + (parseFloat(item.precio_compra || 0) * parseInt(item.cantidad || 0)), 0)
+)
 
 const agregarALote = (producto) => {
   const existe = loteCompra.value.find(item => item.producto_id === producto.id)
-  if (existe) { existe.cantidad++ } 
-  else { loteCompra.value.push({ producto_id: producto.id, nombre: producto.nombre, cantidad: 1, precio_compra: parseFloat(producto.precio_compra || 0) }) }
+  if (existe) {
+    existe.cantidad++
+  } else {
+    loteCompra.value.push({
+      producto_id: producto.id,
+      nombre: producto.nombre,
+      cantidad: 1,
+      precio_compra: parseFloat(producto.precio_compra || 0)
+    })
+  }
 }
 
 const quitarDelLote = (index) => loteCompra.value.splice(index, 1)
 
-// Función para traducir el ID al nombre real del producto en el modal
 const getNombreProducto = (id) => {
   const prod = listaProductos.value.find(p => p.id === id)
   return prod ? prod.nombre : `Producto #${id}`
@@ -217,49 +236,64 @@ const abrirDetalle = (compraObj) => {
   isDetalleOpen.value = true
 }
 
+const formatearFecha = (fechaStr) => {
+  if (!fechaStr) return '-'
+  return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+// ✅ Sin token manual, sin URL hardcodeada
 const cargarDatosBase = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const config = { headers: { 'Authorization': `Bearer ${token}` } }
     const [resProductos, resProveedores] = await Promise.all([
-      axios.get('http://127.0.0.1:8000/productos/', config),
-      axios.get('http://127.0.0.1:8000/proveedores/', config)
+      api.get('/productos/'),
+      api.get('/proveedores/')
     ])
     listaProductos.value = resProductos.data
     listaProveedores.value = resProveedores.data
-  } catch (error) { console.error("Error cargando catálogos de compras:", error) }
+  } catch (error) {
+    console.error("Error cargando catálogos de compras:", error)
+  }
 }
 
 const cambiarAHistorial = async () => {
   pestanaActual.value = 'historial'
   try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/compras/', { headers: { 'Authorization': `Bearer ${token}` } })
+    const res = await api.get('/compras/')
     historialCompras.value = res.data
-  } catch (error) { console.error("Error cargando el historial:", error) }
+  } catch (error) {
+    console.error("Error cargando el historial:", error)
+  }
 }
 
 const procesarCompra = async () => {
+  isProcessingCompra.value = true
   try {
-    const token = localStorage.getItem('token')
-    const numeroFacturaFinal = compra.value.numero_factura.trim() !== '' ? compra.value.numero_factura : `INT-${Date.now().toString().slice(-6)}`
+    const numeroFacturaFinal = compra.value.numero_factura.trim() !== ''
+      ? compra.value.numero_factura
+      : `INT-${Date.now().toString().slice(-6)}`
+
     const payload = {
       proveedor_id: parseInt(compra.value.proveedor_id),
       proveedor_nuevo: null,
       numero_factura: numeroFacturaFinal,
-      items: loteCompra.value.map(item => ({ producto_id: item.producto_id, cantidad: parseInt(item.cantidad), precio_compra: parseFloat(item.precio_compra) }))
+      items: loteCompra.value.map(item => ({
+        producto_id: item.producto_id,
+        cantidad: parseInt(item.cantidad),
+        precio_compra: parseFloat(item.precio_compra)
+      }))
     }
-    await axios.post('http://127.0.0.1:8000/compras/', payload, { headers: { 'Authorization': `Bearer ${token}` } })
-    alert("¡Abastecimiento de inventario registrado con éxito!")
+
+    await api.post('/compras/', payload) // ✅ Limpio
+
+    showToast(`¡Entrada de mercancía por $${totalCompra.value.toLocaleString()} registrada con éxito!`, "success")
     loteCompra.value = []
     compra.value = { proveedor_id: '', numero_factura: '' }
-    cargarDatosBase() 
-  } catch (error) { alert("Hubo un error al guardar la factura de compra.") }
-}
-
-const formatearFecha = (fechaStr) => {
-  if (!fechaStr) return '-'
-  return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+    cargarDatosBase()
+  } catch (error) {
+    showToast(error.response?.data?.detail || "Error al guardar la factura de compra.", "error")
+  } finally {
+    isProcessingCompra.value = false
+  }
 }
 
 onMounted(() => { cargarDatosBase() })

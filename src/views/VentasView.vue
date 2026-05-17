@@ -259,43 +259,38 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import api from '../api/axios' // ✅ Instancia centralizada con token automático
 import Sidebar from '../components/Sidebar.vue'
-import axios from 'axios'
-import { useToast } from '../composables/useToast' // INYECTADO: Sistema de Toasts
+import { useToast } from '../composables/useToast'
 
 const obtenerFechaLocalActual = () => {
   const ahora = new Date()
-  const tzOffset = ahora.getTimezoneOffset() * 60000 
+  const tzOffset = ahora.getTimezoneOffset() * 60000
   const horaLocal = new Date(ahora.getTime() - tzOffset)
-  return horaLocal.toISOString().slice(0, 16) 
+  return horaLocal.toISOString().slice(0, 16)
 }
 
-// --- ESTADOS ---
-const pestanaActual = ref('caja') 
+const pestanaActual = ref('caja')
 const listaProductos = ref([])
 const listaClientes = ref([])
 const historialVentas = ref([])
 const carrito = ref([])
 const busqueda = ref('')
-
 const busquedaCliente = ref('')
 const mostrarDropdownCliente = ref(false)
-
 const isDetalleOpen = ref(false)
 const ventaSeleccionada = ref(null)
-
-const { showToast } = useToast() // INYECTADO: Instancia de notificaciones
-const isProcessingVenta = ref(false) // INYECTADO: Estado de carga global del botón
+const { showToast } = useToast()
+const isProcessingVenta = ref(false)
 
 const venta = ref({
   cliente_id: '',
   es_credito: false,
   cuota_inicial: 0,
   metodo_pago: 'Efectivo',
-  fecha: obtenerFechaLocalActual() 
+  fecha: obtenerFechaLocalActual()
 })
 
-// --- COMPUTADOS ---
 const productosFiltrados = computed(() => {
   if (!busqueda.value) return listaProductos.value
   return listaProductos.value.filter(p => p.nombre.toLowerCase().includes(busqueda.value.toLowerCase()))
@@ -304,15 +299,15 @@ const productosFiltrados = computed(() => {
 const clientesFiltradosCaja = computed(() => {
   if (!busquedaCliente.value) return listaClientes.value
   const termino = busquedaCliente.value.toLowerCase()
-  return listaClientes.value.filter(c => 
+  return listaClientes.value.filter(c =>
     `${c.nombre} ${c.apellido || ''}`.toLowerCase().includes(termino) ||
     (c.telefono && c.telefono.includes(termino))
   )
 })
 
-const totalVenta = computed(() => {
-  return carrito.value.reduce((total, item) => total + (parseFloat(item.producto.precio_venta) * item.cantidad), 0)
-})
+const totalVenta = computed(() =>
+  carrito.value.reduce((total, item) => total + (parseFloat(item.producto.precio_venta) * item.cantidad), 0)
+)
 
 const montoEnDeuda = computed(() => {
   if (!venta.value.es_credito) return 0
@@ -320,12 +315,9 @@ const montoEnDeuda = computed(() => {
   return deuda > 0 ? deuda : 0
 })
 
-// --- FUNCIONES DE VALIDACIÓN PARA ENTRADAS NUMÉRICAS MANUALES ---
 const validarCantidadManual = (index) => {
   const item = carrito.value[index]
-  
   if (item.cantidad > item.producto.stock) {
-    // REEMPLAZADO: Alerta gris por Toast de Advertencia descriptivo
     showToast(`Stock insuficiente: Solo quedan ${item.producto.stock} unidades de '${item.producto.nombre}'.`, "warning")
     item.cantidad = item.producto.stock
   }
@@ -333,18 +325,14 @@ const validarCantidadManual = (index) => {
 
 const corregirCantidadVacia = (index) => {
   const item = carrito.value[index]
-  if (!item.cantidad || item.cantidad < 1) {
-    item.cantidad = 1
-  }
+  if (!item.cantidad || item.cantidad < 1) item.cantidad = 1
 }
 
-// --- FUNCIONES DEL MODAL DE DETALLE ---
-const abrirDetalle = (venta) => {
-  ventaSeleccionada.value = venta
+const abrirDetalle = (v) => {
+  ventaSeleccionada.value = v
   isDetalleOpen.value = true
 }
 
-// MODIFICADO: Higiene total del modal del recibo para eliminar basura de memoria (Punto 4)
 const cerrarModalDetalle = () => {
   isDetalleOpen.value = false
   ventaSeleccionada.value = null
@@ -355,7 +343,6 @@ const getNombreProducto = (id) => {
   return prod ? prod.nombre : `Producto #${id}`
 }
 
-// --- FUNCIONES DEL BUSCADOR DE CLIENTES ---
 const seleccionarCliente = (cliente) => {
   venta.value.cliente_id = cliente.id
   busquedaCliente.value = `${cliente.nombre} ${cliente.apellido || ''}`.trim()
@@ -368,45 +355,11 @@ const limpiarCliente = () => {
   mostrarDropdownCliente.value = false
 }
 
-// --- CARGA DE DATOS ---
-const cargarDatos = async () => {
-  try {
-    const token = localStorage.getItem('token')
-    const config = { headers: { 'Authorization': `Bearer ${token}` } }
-    
-    const [resProductos, resClientes] = await Promise.all([
-      axios.get('http://127.0.0.1:8000/productos/', config),
-      axios.get('http://127.0.0.1:8000/clientes/', config)
-    ])
-    
-    listaProductos.value = resProductos.data
-    listaClientes.value = resClientes.data
-  } catch (error) {
-    console.error("Error cargando inventario/clientes:", error)
-  }
-}
-
-const cambiarAHistorial = async () => {
-  pestanaActual.value = 'historial'
-  try {
-    const token = localStorage.getItem('token')
-    const res = await axios.get('http://127.0.0.1:8000/ventas/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    historialVentas.value = res.data
-  } catch (error) {
-    console.error("Error cargando el historial de ventas:", error)
-  }
-}
-
-// --- UTILIDADES ---
 const formatearFecha = (fechaStr) => {
   if (!fechaStr) return '-'
-  const fecha = new Date(fechaStr) 
-  return fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-// --- LÓGICA DEL CARRITO ---
 const agregarAlCarrito = (producto) => {
   const itemExistente = carrito.value.find(item => item.producto.id === producto.id)
   if (itemExistente) {
@@ -429,12 +382,33 @@ const quitarDelCarrito = (index) => {
   carrito.value.splice(index, 1)
 }
 
-// --- PROCESAR VENTA BLINDADO ---
-const procesarVenta = async () => {
-  isProcessingVenta.value = true // Congela el botón e inyecta el Spinner de carga (Punto 2)
+// ✅ Sin token manual, sin URL hardcodeada
+const cargarDatos = async () => {
   try {
-    const token = localStorage.getItem('token')
-    
+    const [resProductos, resClientes] = await Promise.all([
+      api.get('/productos/'),
+      api.get('/clientes/')
+    ])
+    listaProductos.value = resProductos.data
+    listaClientes.value = resClientes.data
+  } catch (error) {
+    console.error("Error cargando inventario/clientes:", error)
+  }
+}
+
+const cambiarAHistorial = async () => {
+  pestanaActual.value = 'historial'
+  try {
+    const res = await api.get('/ventas/')
+    historialVentas.value = res.data
+  } catch (error) {
+    console.error("Error cargando el historial de ventas:", error)
+  }
+}
+
+const procesarVenta = async () => {
+  isProcessingVenta.value = true
+  try {
     const payload = {
       cliente_id: parseInt(venta.value.cliente_id),
       cliente_nuevo: null,
@@ -442,40 +416,33 @@ const procesarVenta = async () => {
       cuota_inicial: venta.value.es_credito ? parseFloat(venta.value.cuota_inicial || 0) : totalVenta.value,
       metodo_pago: venta.value.metodo_pago,
       fecha: venta.value.fecha ? new Date(venta.value.fecha).toISOString() : null,
-      
       items: carrito.value.map(item => ({
         producto_id: item.producto.id,
-        kind: undefined, // Preserva estructura interna exacta
         cantidad: item.cantidad,
         precio_unitario: parseFloat(item.producto.precio_venta)
       }))
     }
 
-    await axios.post('http://127.0.0.1:8000/ventas/', payload, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.post('/ventas/', payload) // ✅ Limpio
 
-    // REEMPLAZADO: Alerta clásica por Toast exitoso elegante
     showToast(`¡Venta por $${totalVenta.value.toLocaleString()} registrada con éxito!`, "success")
-    
-    // Reseteo higiénico total de la caja registradora tras vender
+
     carrito.value = []
-    venta.value = { 
-      cliente_id: '', 
-      es_credito: false, 
-      cuota_inicial: 0, 
+    venta.value = {
+      cliente_id: '',
+      es_credito: false,
+      cuota_inicial: 0,
       metodo_pago: 'Efectivo',
-      fecha: obtenerFechaLocalActual() 
+      fecha: obtenerFechaLocalActual()
     }
     limpiarCliente()
-    await cargarDatos() 
+    await cargarDatos()
 
   } catch (error) {
     console.error("Error al registrar la venta:", error)
-    // REEMPLAZADO: Alerta clásica por Toast de error capturado de FastAPI
     showToast(error.response?.data?.detail || "Error contable: No se pudo asentar la factura en el servidor.", "error")
   } finally {
-    isProcessingVenta.value = false // Libera el botón al terminar la transacción
+    isProcessingVenta.value = false
   }
 }
 

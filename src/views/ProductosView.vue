@@ -57,7 +57,7 @@
                   </td>
                   <td class="px-6 py-4">
                     <span class="bg-blue-100 text-blue-700 py-1 px-2 rounded-md text-xs font-bold">
-                      {{ getNombreCategoria(producto.categoria_id) }}
+                    {{ getNombreCategoria(producto) }}
                     </span>
                   </td>
                   <td class="px-6 py-4 font-medium">${{ parseFloat(producto.precio_venta).toLocaleString() }}</td>
@@ -281,12 +281,21 @@ const productosEnPeligro = computed(() => {
 })
 
 // --- RESOLVER NOMBRE DE CATEGORÍA ---
-const getNombreCategoria = (id) => {
-  if (!listaCategorias.value || !Array.isArray(listaCategorias.value)) return `#${id}`
-  const cat = listaCategorias.value.find(c => c.id === id)
-  return cat ? cat.nombre : `#${id}`
-}
+const getNombreCategoria = (producto) => {
+  // 1. Cazamos el ID en las 3 formas más comunes en las que FastAPI lo puede devolver
+  const id = producto.categoria_id || producto.category_id || (producto.categoria && producto.categoria.id)
+  
+  // Si el producto definitivamente no tiene categoría asignada
+  if (!id) return 'Sin categoría'
 
+  // Si la red está lenta y las categorías aún no llegan
+  if (!listaCategorias.value || !Array.isArray(listaCategorias.value)) return `#${id}`
+
+  // 2. Buscamos forzando a Número (evita errores si FastAPI manda "3" en texto y Vue espera un 3 numérico)
+  const cat = listaCategorias.value.find(c => Number(c.id) === Number(id))
+  
+  return cat ? cat.nombre : `Cat #${id}`
+}
 // --- FUNCIONES DE CIERRE CON RESETEO ---
 const cerrarModalProducto = () => {
   isModalOpen.value = false
