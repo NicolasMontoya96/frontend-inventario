@@ -63,7 +63,7 @@
                   </td>
                   <td class="px-6 py-4">
                     <p class="font-medium text-slate-700">{{ cliente.telefono || 'Sin teléfono' }}</p>
-                    <p class="text-xs text-gray-400">{{ cliente.email }}</p>
+                    <p class="text-xs text-gray-400">{{ cliente.email || 'Sin correo' }}</p>
                   </td>
                   <td class="px-6 py-4">
                     <span class="py-1 px-3 rounded-full text-xs font-semibold" :class="parseFloat(cliente.saldo_deuda) > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
@@ -146,8 +146,8 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Correo Electrónico *</label>
-            <input type="email" v-model="formCliente.email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white">
+            <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Correo Electrónico (Opcional)</label>
+            <input type="email" v-model="formCliente.email" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white">
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -279,7 +279,6 @@ const listaClientes = ref([])
 const busqueda = ref('')
 const { showToast } = useToast()
 
-// NUEVO: Estado responsivo para el menú lateral móvil
 const isSidebarOpen = ref(false)
 
 const isFormModalOpen = ref(false)
@@ -302,11 +301,17 @@ const montoAbono = ref(null)
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// MODIFICADO: Validación condicional. Solo exige Regex si el usuario escribió un email.
 const isFormClienteInvalido = computed(() => {
   const nombre = formCliente.value.nombre ? formCliente.value.nombre.trim() : ''
   const email = formCliente.value.email ? formCliente.value.email.trim() : ''
   const saldo = parseFloat(formCliente.value.saldo_deuda || 0)
-  return !nombre || !email || !emailRegex.test(email) || saldo < 0
+
+  if (!nombre) return true
+  if (saldo < 0) return true
+  if (email && !emailRegex.test(email)) return true
+
+  return false
 })
 
 const isMontoAbonoInvalido = computed(() => {
