@@ -67,6 +67,12 @@
           <span class="mr-3 text-base">🛒</span> Ventas
         </router-link>
 
+        <router-link to="/devoluciones" @click="closeSidebar"
+          class="flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150"
+          :class="$route.path === '/devoluciones' ? 'bg-slate-800 text-white font-semibold border-l-4 border-l-blue-500 rounded-l-none' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'">
+          <span class="mr-3 text-base">↩</span> Devoluciones
+        </router-link>
+
         <router-link to="/compras" @click="closeSidebar"
           class="flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150"
           :class="$route.path === '/compras' ? 'bg-slate-800 text-white font-semibold border-l-4 border-l-blue-500 rounded-l-none' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'">

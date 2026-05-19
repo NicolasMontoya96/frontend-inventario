@@ -8,6 +8,7 @@ import ComprasView from '../views/ComprasView.vue'
 import LoginView from '../views/LoginView.vue' 
 import ProveedoresView from '../views/ProveedoresView.vue' 
 import ReportesView from '../views/ReportesView.vue'
+import DevolucionesView from '../views/DevolucionesView.vue'
 
 const routes = [
   {
@@ -44,6 +45,11 @@ const routes = [
     path: '/ventas',
     name: 'ventas',
     component: VentasView
+  },
+  {
+    path: '/devoluciones',
+    name: 'devoluciones',
+    component: DevolucionesView
   },
   {
     path: '/movimientos',

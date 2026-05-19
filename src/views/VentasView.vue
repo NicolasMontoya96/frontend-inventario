@@ -201,7 +201,7 @@
                   <th class="px-4 py-3 font-medium">Tipo</th>
                   <th class="px-4 py-3 font-medium">Pago</th>
                   <th class="px-4 py-3 font-medium text-right">Total</th>
-                  <th class="px-4 py-3 font-medium text-center">Ver</th>
+                  <th class="px-4 py-3 font-medium text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody class="text-xs lg:text-sm text-gray-700 divide-y divide-gray-200">
@@ -220,8 +220,11 @@
                   <td class="px-4 py-3 text-gray-600">{{ v.metodo_pago }}</td>
                   <td class="px-4 py-3 text-right font-black text-slate-900">${{ parseFloat(v.total_venta).toLocaleString() }}</td>
                   <td class="px-4 py-3 text-center">
-                    <button @click="abrirDetalle(v)" class="text-blue-600 hover:text-blue-800 p-1.5 bg-blue-50 rounded-lg transition text-sm border border-blue-100">
+                    <button @click="abrirDetalle(v)" class="text-blue-600 hover:text-blue-800 p-1.5 bg-blue-50 rounded-lg transition text-sm border border-blue-100 mr-2">
                       👁️
+                    </button>
+                    <button @click="irADevolucion(v)" class="text-slate-700 hover:text-slate-900 px-2 py-1.5 bg-slate-100 rounded-lg transition text-xs border border-slate-200 font-bold">
+                      Devolver
                     </button>
                   </td>
                 </tr>
@@ -280,6 +283,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api/axios' 
 import Sidebar from '../components/Sidebar.vue'
 import { useToast } from '../composables/useToast'
@@ -307,6 +311,7 @@ const mostrarDropdownCliente = ref(false)
 const isDetalleOpen = ref(false)
 const ventaSeleccionada = ref(null)
 const { showToast } = useToast()
+const router = useRouter()
 const isProcessingVenta = ref(false)
 
 const venta = ref({
@@ -363,6 +368,10 @@ const abrirDetalle = (v) => {
 const cerrarModalDetalle = () => {
   isDetalleOpen.value = false
   ventaSeleccionada.value = null
+}
+
+const irADevolucion = (v) => {
+  router.push({ name: 'devoluciones', query: { venta_id: v.id } })
 }
 
 const getNombreProducto = (id) => {

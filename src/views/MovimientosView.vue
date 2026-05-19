@@ -26,7 +26,7 @@
           </div>
           <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
             <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Tipo</label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
               <button v-for="tipo in tiposFiltro" :key="tipo.valor"
                 @click="filtroTipo = tipo.valor"
                 :class="filtroTipo === tipo.valor ? 'bg-slate-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
@@ -78,7 +78,7 @@
               <tbody class="text-xs lg:text-sm text-gray-700 divide-y divide-gray-100">
                 <tr v-for="mov in movimientosFiltrados" :key="`${mov._tipo}-${mov.id}`" class="hover:bg-gray-50 transition">
                   
-                  <td class="px-4 lg:px-6 py-3 text-gray-500 text-xs">{{ formatearFecha(mov.fecha) }}</td>
+                  <td class="px-4 lg:px-6 py-3 text-gray-500 text-xs whitespace-nowrap">{{ formatearFecha(mov.fecha) }}</td>
 
                   <td class="px-4 lg:px-6 py-3">
                     <p class="font-bold text-slate-900">{{ mov._contraparte }}</p>
@@ -91,16 +91,18 @@
                     </span>
                   </td>
 
-                  <td class="px-4 lg:px-6 py-3 text-right font-black font-mono"
+                  <td class="px-4 lg:px-6 py-3 text-right font-black font-mono whitespace-nowrap"
                       :class="mov._tipo === 'compra' ? 'text-purple-700' : mov._tipo === 'abono' ? 'text-green-700' : 'text-slate-900'">
                     {{ mov._tipo === 'compra' ? '−' : '+' }}${{ parseFloat(mov._monto).toLocaleString() }}
                   </td>
 
                   <td class="px-4 lg:px-6 py-3 text-center">
+                    <!-- ✅ Botón solo en ventas y compras, deshabilitado si no hay detalles -->
                     <button
                       v-if="mov._tipo === 'venta' || mov._tipo === 'compra'"
                       @click="abrirDetalle(mov)"
-                      class="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition text-sm"
+                      class="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition text-sm border border-blue-100"
+                      title="Ver productos"
                     >👁️</button>
                     <span v-else class="text-gray-300 text-xs">—</span>
                   </td>
@@ -119,18 +121,22 @@
     <!-- MODAL DETALLE -->
     <div v-if="isDetalleOpen && movSeleccionado" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
         <div class="px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
           <div>
             <h3 class="text-base lg:text-lg font-bold text-slate-800">
-              {{ movSeleccionado._tipo === 'venta' ? `Venta #${movSeleccionado.id}` : `Compra #${movSeleccionado.id} — ${movSeleccionado.numero_factura}` }}
-            </h3>
-            <p class="text-[10px] lg:text-xs text-gray-500">
+              <!-- ✅ Protección con || '' para evitar "undefined" en el título -->
               {{ movSeleccionado._tipo === 'venta'
-                ? `Cliente: ${movSeleccionado._contraparte} | Pago: ${movSeleccionado.metodo_pago}`
-                : `Proveedor: ${movSeleccionado._contraparte}` }}
+                ? `Venta #${movSeleccionado.id}`
+                : `Compra #${movSeleccionado.id}${movSeleccionado.numero_factura ? ' — ' + movSeleccionado.numero_factura : ''}` }}
+            </h3>
+            <p class="text-[10px] lg:text-xs text-gray-500 mt-0.5">
+              {{ movSeleccionado._tipo === 'venta'
+                ? `Cliente: ${movSeleccionado._contraparte} | Pago: ${movSeleccionado.metodo_pago || '—'}`
+                : `Proveedor: ${movSeleccionado._contraparte} | ${formatearFecha(movSeleccionado.fecha)}` }}
             </p>
           </div>
-          <button @click="cerrarDetalle" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
+          <button @click="cerrarDetalle" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none ml-4">&times;</button>
         </div>
 
         <div class="p-4 lg:p-6 overflow-y-auto">
@@ -145,13 +151,23 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="item in detallesModal" :key="item.id">
-                <td class="px-3 py-2 font-semibold text-slate-800">{{ getNombreProducto(item.producto_id) }}</td>
+                <td class="px-3 py-2 font-semibold text-slate-800">
+                  <!-- ✅ Para ventas usa nombre_producto que ya viene del backend; para compras busca por ID -->
+                  {{ movSeleccionado._tipo === 'venta'
+                    ? (item.nombre_producto || getNombreProducto(item.producto_id))
+                    : getNombreProducto(item.producto_id) }}
+                </td>
                 <td class="px-3 py-2 text-center text-slate-600">{{ item.cantidad }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">
-                  ${{ parseFloat(movSeleccionado._tipo === 'venta' ? item.precio_unitario : item.precio_compra).toLocaleString() }}
+                  <!-- ✅ Campo correcto según tipo: precio_unitario para ventas, precio_compra para compras -->
+                  ${{ parseFloat(movSeleccionado._tipo === 'venta'
+                    ? (item.precio_unitario || 0)
+                    : (item.precio_compra || 0)).toLocaleString() }}
                 </td>
                 <td class="px-3 py-2 text-right font-bold text-slate-900">
-                  ${{ (item.cantidad * parseFloat(movSeleccionado._tipo === 'venta' ? item.precio_unitario : item.precio_compra)).toLocaleString() }}
+                  ${{ (item.cantidad * parseFloat(movSeleccionado._tipo === 'venta'
+                    ? (item.precio_unitario || 0)
+                    : (item.precio_compra || 0))).toLocaleString() }}
                 </td>
               </tr>
               <tr v-if="detallesModal.length === 0">
@@ -159,9 +175,21 @@
               </tr>
             </tbody>
           </table>
-          <div class="flex justify-end pt-4 border-t border-gray-200">
-            <span class="text-sm font-medium text-gray-600 mr-4">Total:</span>
-            <span class="text-xl font-black text-slate-900">${{ parseFloat(movSeleccionado._monto).toLocaleString() }}</span>
+
+          <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+            <!-- ✅ Info extra según tipo -->
+            <div class="text-xs text-gray-400">
+              <span v-if="movSeleccionado._tipo === 'venta' && movSeleccionado.es_credito" class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-semibold">
+                Crédito · Deuda: ${{ parseFloat(movSeleccionado.monto_en_deuda || 0).toLocaleString() }}
+              </span>
+              <span v-else-if="movSeleccionado._tipo === 'venta'" class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-semibold">
+                Contado
+              </span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium text-gray-600">Total:</span>
+              <span class="text-xl font-black text-slate-900">${{ parseFloat(movSeleccionado._monto).toLocaleString() }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -195,7 +223,12 @@ const tiposFiltro = [
 
 const isDetalleOpen   = ref(false)
 const movSeleccionado = ref(null)
-const detallesModal   = computed(() => movSeleccionado.value?.detalles || [])
+
+// ✅ detallesModal lee el campo correcto según el tipo del movimiento seleccionado
+const detallesModal = computed(() => {
+  if (!movSeleccionado.value) return []
+  return movSeleccionado.value.detalles || []
+})
 
 // Normaliza las 3 fuentes al mismo formato para la tabla
 const movimientosUnificados = computed(() => {
@@ -226,7 +259,7 @@ const movimientosUnificados = computed(() => {
     _contraparte: c.proveedor
       ? c.proveedor.nombre_empresa
       : `Proveedor #${c.proveedor_id}`,
-    _subinfo: `Factura: ${c.numero_factura}`,
+    _subinfo: `Factura: ${c.numero_factura || 'S/N'}`,
   }))
 
   return [...ventas, ...abonos, ...compras]
@@ -248,7 +281,7 @@ const movimientosFiltrados = computed(() => {
   return lista
 })
 
-// Métricas sobre el total siempre, sin importar el filtro activo
+// Métricas sobre el total completo, sin importar el filtro activo
 const totalVentas  = computed(() => listaVentas.value.reduce((s, v) => s + parseFloat(v.total_venta || 0), 0))
 const totalAbonos  = computed(() => listaAbonos.value.reduce((s, a) => s + parseFloat(a.monto_abonado || 0), 0))
 const totalCompras = computed(() => listaCompras.value.reduce((s, c) => s + parseFloat(c.total || 0), 0))
@@ -270,9 +303,17 @@ const chipLabel = (tipo, mov) => {
   return ''
 }
 
-const abrirDetalle = (mov) => { movSeleccionado.value = mov; isDetalleOpen.value = true }
-const cerrarDetalle = () => { isDetalleOpen.value = false; movSeleccionado.value = null }
+const abrirDetalle = (mov) => {
+  movSeleccionado.value = mov
+  isDetalleOpen.value = true
+}
 
+const cerrarDetalle = () => {
+  isDetalleOpen.value = false
+  movSeleccionado.value = null
+}
+
+// ✅ Fallback por si el nombre no viene en el detalle (compras siempre lo necesitan)
 const getNombreProducto = (id) => {
   const prod = listaProductos.value.find(p => Number(p.id) === Number(id))
   return prod ? prod.nombre : `Artículo #${id}`
