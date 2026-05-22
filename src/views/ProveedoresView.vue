@@ -32,11 +32,12 @@
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
               <input type="text" v-model="busqueda" placeholder="Buscar por empresa o NIT..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
             </div>
-            <button @click="isModalOpen = true" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center shadow-sm">
+            <button @click="abrirModalNuevo" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center shadow-sm">
               <span class="mr-2">+</span> Nuevo Proveedor
             </button>
           </div>
 
+          <!-- TABLA DESKTOP -->
           <div class="hidden lg:block overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
@@ -62,7 +63,8 @@
                     </button>
                   </td>
                   <td class="px-6 py-4 text-right space-x-3">
-                    <button class="text-slate-400 hover:text-slate-800 transition text-lg">✏️</button>
+                    <!-- ✅ Editar conectado -->
+                    <button @click="abrirModalEditar(prov)" title="Editar proveedor" class="text-slate-400 hover:text-slate-800 transition text-lg">✏️</button>
                     <button @click="eliminarProveedor(prov.id)" class="text-slate-400 hover:text-red-600 transition text-lg">🗑️</button>
                   </td>
                 </tr>
@@ -73,13 +75,13 @@
             </table>
           </div>
 
+          <!-- TARJETAS MÓVIL -->
           <div class="block lg:hidden divide-y divide-gray-100">
             <div v-for="prov in proveedoresFiltrados" :key="'mob-'+prov.id" class="p-4 bg-white hover:bg-slate-50 transition">
               <div class="mb-2">
                 <h3 class="font-bold text-slate-900 text-base leading-tight">{{ prov.nombre_empresa }}</h3>
                 <p class="text-xs text-gray-500 mt-1 italic">{{ prov.descripcion || 'Sin descripción' }}</p>
               </div>
-              
               <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg my-3 border border-gray-100">
                 <div>
                   <span class="text-gray-400 block text-[10px] uppercase font-bold">NIT</span>
@@ -90,13 +92,13 @@
                   <span class="text-slate-700 font-semibold truncate block">{{ prov.contacto || 'No registrado' }}</span>
                 </div>
               </div>
-              
               <div class="flex justify-between items-center pt-2">
                 <button @click="abrirHistorialCompras(prov)" class="text-xs text-blue-600 font-bold bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 active:scale-95 transition-transform">
                   👁️ Libro de Facturas
                 </button>
                 <div class="flex space-x-4">
-                  <button class="text-slate-400 hover:text-slate-800 text-xl active:scale-90">✏️</button>
+                  <!-- ✅ Editar conectado en móvil -->
+                  <button @click="abrirModalEditar(prov)" class="text-slate-400 hover:text-slate-800 text-xl active:scale-90">✏️</button>
                   <button @click="eliminarProveedor(prov.id)" class="text-slate-400 hover:text-red-600 text-xl active:scale-90">🗑️</button>
                 </div>
               </div>
@@ -105,50 +107,53 @@
               No se encontraron proveedores.
             </div>
           </div>
-
         </div>
       </main>
     </div>
 
+    <!-- ✅ MODAL CREAR / EDITAR — reutilizado con modoEdicion -->
     <div v-if="isModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
         <div class="px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
-          <h3 class="text-base lg:text-lg font-bold text-slate-800">Registrar Proveedor</h3>
-          <button @click="isModalOpen = false" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
+          <h3 class="text-base lg:text-lg font-bold text-slate-800">
+            {{ modoEdicion ? 'Editar Proveedor' : 'Registrar Proveedor' }}
+          </h3>
+          <button @click="cerrarModal" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
         </div>
         <form @submit.prevent="guardarProveedor" class="p-4 lg:p-6 space-y-4 overflow-y-auto">
           <div>
             <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Razón Social / Empresa *</label>
-            <input type="text" v-model="nuevoProveedor.nombre_empresa" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+            <input type="text" v-model="formProveedor.nombre_empresa" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">NIT (Opcional)</label>
-              <input type="text" v-model="nuevoProveedor.nit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+              <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">NIT</label>
+              <input type="text" v-model="formProveedor.nit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
             </div>
             <div>
               <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Teléfono / Contacto</label>
-              <input type="text" v-model="nuevoProveedor.contacto" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+              <input type="text" v-model="formProveedor.contacto" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
             </div>
           </div>
           <div>
             <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Descripción / Notas</label>
-            <textarea v-model="nuevoProveedor.descripcion" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"></textarea>
+            <textarea v-model="formProveedor.descripcion" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"></textarea>
           </div>
           <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 mt-2 sticky bottom-0 bg-white">
-            <button type="button" @click="isModalOpen = false" :disabled="isSaving" class="px-4 py-2 text-xs lg:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">Cancelar</button>
+            <button type="button" @click="cerrarModal" :disabled="isSaving" class="px-4 py-2 text-xs lg:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">Cancelar</button>
             <button type="submit" :disabled="isSaving" class="px-4 py-2 text-xs lg:text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition flex items-center justify-center disabled:bg-slate-700 disabled:cursor-not-allowed">
               <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {{ isSaving ? 'Guardando...' : 'Guardar' }}
+              {{ isSaving ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Guardar') }}
             </button>
           </div>
         </form>
       </div>
     </div>
 
+    <!-- MODAL HISTORIAL DE COMPRAS — sin cambios -->
     <div v-if="isHistorialOpen && proveedorSeleccionado" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[95vh]">
         <div class="px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
@@ -181,7 +186,6 @@
                     <td class="px-3 py-3 font-bold text-slate-800">{{ compra.numero_factura }}</td>
                     <td class="px-3 py-3 text-right font-black text-slate-900">${{ parseFloat(compra.total).toLocaleString() }}</td>
                   </tr>
-
                   <tr v-if="facturaExpandidaId === compra.id" class="bg-blue-50/30">
                     <td colspan="3" class="px-2 sm:px-4 py-3">
                       <div class="bg-white border border-blue-100 rounded-xl p-3 shadow-sm overflow-x-auto">
@@ -210,7 +214,6 @@
                     </td>
                   </tr>
                 </template>
-
                 <tr v-if="comprasDelProveedor.length === 0">
                   <td colspan="3" class="px-3 py-8 text-center text-gray-400">No se han registrado compras a este proveedor.</td>
                 </tr>
@@ -231,29 +234,31 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import api from '../api/axios' 
+import api from '../api/axios'
 import Sidebar from '../components/Sidebar.vue'
 import { useToast } from '../composables/useToast'
 
 const { showToast } = useToast()
 
 const isSidebarOpen = ref(false)
-
 const nombreUsuario = ref('Admin')
 const inicialUsuario = computed(() => nombreUsuario.value ? nombreUsuario.value.charAt(0).toUpperCase() : 'A')
 
 const listaProveedores = ref([])
-const listaProductos = ref([])
-const busqueda = ref('')
-const isModalOpen = ref(false)
-const isSaving = ref(false)
+const listaProductos   = ref([])
+const busqueda         = ref('')
+const isModalOpen      = ref(false)
+const isSaving         = ref(false)
 
-const isHistorialOpen = ref(false)
+// ✅ Un solo formulario para crear y editar
+const modoEdicion        = ref(false)
+const proveedorEditandoId = ref(null)
+const formProveedor = ref({ nombre_empresa: '', nit: '', contacto: '', descripcion: '' })
+
+const isHistorialOpen      = ref(false)
 const proveedorSeleccionado = ref(null)
-const comprasDelProveedor = ref([])
-const facturaExpandidaId = ref(null)
-
-const nuevoProveedor = ref({ nombre_empresa: '', nit: '', contacto: '', descripcion: '' })
+const comprasDelProveedor  = ref([])
+const facturaExpandidaId   = ref(null)
 
 const proveedoresFiltrados = computed(() => {
   if (!busqueda.value) return listaProveedores.value
@@ -267,15 +272,90 @@ const totalInvertido = computed(() =>
   comprasDelProveedor.value.reduce((sum, compra) => sum + parseFloat(compra.total || 0), 0)
 )
 
+// ✅ Abrir modal en modo CREAR
+const abrirModalNuevo = () => {
+  modoEdicion.value = false
+  proveedorEditandoId.value = null
+  formProveedor.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
+  isModalOpen.value = true
+}
+
+// ✅ Abrir modal en modo EDITAR — precarga los datos del proveedor
+const abrirModalEditar = (prov) => {
+  modoEdicion.value = true
+  proveedorEditandoId.value = prov.id
+  formProveedor.value = {
+    nombre_empresa: prov.nombre_empresa,
+    nit: prov.nit || '',
+    contacto: prov.contacto || '',
+    descripcion: prov.descripcion || ''
+  }
+  isModalOpen.value = true
+}
+
+const cerrarModal = () => {
+  isModalOpen.value = false
+  modoEdicion.value = false
+  proveedorEditandoId.value = null
+  formProveedor.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
+}
+
+// ✅ Guardar: POST si es nuevo, PATCH si es edición
+const guardarProveedor = async () => {
+  if (!formProveedor.value.nombre_empresa) return
+  isSaving.value = true
+  try {
+    if (modoEdicion.value) {
+      // EDITAR — solo envía los campos que tienen valor
+      const payload = {
+        nombre_empresa: formProveedor.value.nombre_empresa,
+        nit: formProveedor.value.nit || null,
+        contacto: formProveedor.value.contacto || null,
+        descripcion: formProveedor.value.descripcion || null
+      }
+      await api.patch(`/proveedores/${proveedorEditandoId.value}`, payload)
+      showToast(`Proveedor '${payload.nombre_empresa}' actualizado correctamente.`, 'success')
+    } else {
+      // CREAR — autogenera NIT si no se proporcionó
+      const nitFinal = formProveedor.value.nit && formProveedor.value.nit.trim() !== ''
+        ? formProveedor.value.nit
+        : `S/N-${Date.now().toString().slice(-6)}`
+      const payload = {
+        nombre_empresa: formProveedor.value.nombre_empresa,
+        nit: nitFinal,
+        contacto: formProveedor.value.contacto || null,
+        descripcion: formProveedor.value.descripcion || null
+      }
+      await api.post('/proveedores/', payload)
+      showToast(`Proveedor '${payload.nombre_empresa}' registrado con éxito.`, 'success')
+    }
+    cerrarModal()
+    cargarProveedores()
+  } catch (error) {
+    showToast(error.response?.data?.detail || 'Error al guardar proveedor.', 'error')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const eliminarProveedor = async (id) => {
+  if (!confirm('¿Estás seguro de eliminar este proveedor?')) return
+  try {
+    await api.delete(`/proveedores/${id}`)
+    showToast('Proveedor eliminado correctamente.', 'success')
+    cargarProveedores()
+  } catch (error) {
+    showToast(error.response?.data?.detail || 'No se pudo eliminar. Puede tener compras asociadas.', 'error')
+  }
+}
+
 const toggleFactura = (id) => {
   facturaExpandidaId.value = facturaExpandidaId.value === id ? null : id
 }
 
-// MODIFICADO: Búsqueda con tipado seguro forzado
 const getNombreProducto = (id) => {
-  if (!listaProductos.value || !Array.isArray(listaProductos.value)) return `Cargando...`
   const prod = listaProductos.value.find(p => Number(p.id) === Number(id))
-  return prod ? prod.nombre : `[Inactivo] Artículo #${id}`
+  return prod ? prod.nombre : `Artículo #${id}`
 }
 
 const formatearFecha = (fechaStr) => {
@@ -287,18 +367,14 @@ const cargarProductos = async () => {
   try {
     const res = await api.get('/productos/')
     listaProductos.value = res.data
-  } catch (error) {
-    console.error("Error al cargar productos catálogo:", error)
-  }
+  } catch (error) { console.error('Error al cargar productos:', error) }
 }
 
 const cargarProveedores = async () => {
   try {
     const res = await api.get('/proveedores/')
     listaProveedores.value = res.data
-  } catch (error) {
-    console.error("Error al cargar proveedores:", error)
-  }
+  } catch (error) { console.error('Error al cargar proveedores:', error) }
 }
 
 const abrirHistorialCompras = async (proveedor) => {
@@ -306,60 +382,17 @@ const abrirHistorialCompras = async (proveedor) => {
   isHistorialOpen.value = true
   comprasDelProveedor.value = []
   facturaExpandidaId.value = null
-
   try {
     const res = await api.get('/compras/')
     comprasDelProveedor.value = res.data
       .filter(c => c.proveedor_id === proveedor.id)
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-  } catch (error) {
-    console.error("Error al cargar el historial de compras del proveedor:", error)
-  }
-}
-
-const guardarProveedor = async () => {
-  if (!nuevoProveedor.value.nombre_empresa) return
-  isSaving.value = true
-  try {
-    const nitFinal = nuevoProveedor.value.nit && nuevoProveedor.value.nit.trim() !== ''
-      ? nuevoProveedor.value.nit
-      : `S/N-${Date.now().toString().slice(-6)}`
-
-    const payload = {
-      nombre_empresa: nuevoProveedor.value.nombre_empresa,
-      nit: nitFinal,
-      contacto: nuevoProveedor.value.contacto || null,
-      descripcion: nuevoProveedor.value.descripcion || null
-    }
-
-    await api.post('/proveedores/', payload)
-
-    showToast(`Proveedor '${payload.nombre_empresa}' registrado con éxito.`, "success")
-    isModalOpen.value = false
-    nuevoProveedor.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
-    cargarProveedores()
-  } catch (error) {
-    showToast(error.response?.data?.detail || "Error al guardar proveedor.", "error")
-  } finally {
-    isSaving.value = false
-  }
-}
-
-const eliminarProveedor = async (id) => {
-  if (!confirm("¿Estás seguro de eliminar este proveedor?")) return
-  try {
-    await api.delete(`/proveedores/${id}`)
-    showToast("Proveedor eliminado correctamente.", "success")
-    cargarProveedores()
-  } catch (error) {
-    showToast(error.response?.data?.detail || "No se pudo eliminar. Puede tener compras asociadas.", "error")
-  }
+  } catch (error) { console.error('Error al cargar historial:', error) }
 }
 
 onMounted(() => {
   cargarProveedores()
   cargarProductos()
-  
   const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('username') || localStorage.getItem('nombre')
   if (usuarioGuardado) nombreUsuario.value = usuarioGuardado
 })
