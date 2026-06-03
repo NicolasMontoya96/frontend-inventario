@@ -263,7 +263,7 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="item in ventaSeleccionada.detalles" :key="item.id">
-                <td class="px-3 py-2 font-semibold text-slate-800">{{ getNombreProducto(item.producto_id) }}</td>
+                <td class="px-3 py-2 font-semibold text-slate-800">{{ item.nombre_producto || getNombreProducto(item.producto_id) }}</td>
                 <td class="px-3 py-2 text-center text-slate-600">{{ item.cantidad }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">${{ parseFloat(item.precio_unitario).toLocaleString() }}</td>
                 <td class="px-3 py-2 text-right font-bold text-slate-900">${{ (item.cantidad * parseFloat(item.precio_unitario)).toLocaleString() }}</td>
@@ -375,7 +375,7 @@ const irADevolucion = (v) => {
 }
 
 const getNombreProducto = (id) => {
-  const prod = listaProductos.value.find(p => p.id === id)
+  const prod = listaProductos.value.find(p => Number(p.id) === Number(id))
   return prod ? prod.nombre : `Producto #${id}`
 }
 
