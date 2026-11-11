@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-screen bg-gray-50 font-sans">
-    
+
     <Sidebar :isOpen="isSidebarOpen" @close="isSidebarOpen = false" />
 
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -18,7 +18,7 @@
       </header>
 
       <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-8">
-        
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8 max-w-4xl">
           <div class="bg-white p-5 lg:p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-blue-500">
             <p class="text-[10px] lg:text-sm font-medium text-gray-500 uppercase tracking-wider">Total Productos (Catálogo)</p>
@@ -75,7 +75,7 @@
                   <td class="px-6 py-4 font-bold" :class="producto.stock <= 5 ? 'text-red-600' : 'text-slate-700'">{{ producto.stock }} unid.</td>
                   <td class="px-6 py-4">
                     <span class="py-1 px-3 rounded-full text-xs font-semibold flex inline-flex items-center" :class="producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                      <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span> 
+                      <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
                       {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
                     </span>
                   </td>
@@ -107,15 +107,15 @@
                 </div>
                 <span class="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0">{{ getNombreCategoria(producto) }}</span>
               </div>
-              
+
               <div class="flex justify-between items-center mb-3">
                 <span class="font-black text-slate-800">${{ parseFloat(producto.precio_venta).toLocaleString() }}</span>
                 <span class="font-bold text-sm" :class="producto.stock <= 5 ? 'text-red-600' : 'text-slate-700'">{{ producto.stock }} unid.</span>
               </div>
-              
+
               <div class="flex justify-between items-center pt-3 border-t border-gray-50">
                 <span class="py-1 px-2 rounded-full text-[10px] font-semibold flex items-center" :class="producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                  <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span> 
+                  <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
                   {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
                 </span>
                 <div class="flex space-x-4">
@@ -140,7 +140,7 @@
           <h3 class="text-base lg:text-lg font-bold text-slate-800">Registrar Producto</h3>
           <button @click="cerrarModalProducto" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
         </div>
-        
+
         <div class="overflow-y-auto p-4 lg:p-6">
           <form @submit.prevent="guardarProducto" class="space-y-4">
             <div class="grid grid-cols-1 gap-4">
@@ -153,7 +153,7 @@
                 <textarea v-model="nuevoProducto.descripcion" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"></textarea>
               </div>
             </div>
-            
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div class="flex justify-between items-center mb-1">
@@ -215,7 +215,7 @@
 
             <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 mt-6 sticky bottom-0 bg-white">
               <button type="button" @click="cerrarModalProducto" :disabled="isSavingProducto" class="px-4 py-2 text-xs lg:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">Cancelar</button>
-              
+
               <button type="submit" :disabled="isSavingProducto" class="px-4 py-2 text-xs lg:text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition shadow-sm flex items-center disabled:bg-slate-700 disabled:cursor-not-allowed">
                 <svg v-if="isSavingProducto" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -293,6 +293,17 @@
           </div>
           <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-4">
             <button type="button" @click="cerrarModalImagen" :disabled="isSavingImagen" class="px-3 py-2 text-xs lg:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+
+            <button
+              v-if="productoSeleccionadoImagen?.imagen_url && !previsualizacionImagen"
+              type="button"
+              @click="eliminarImagen"
+              :disabled="isSavingImagen"
+              class="px-3 py-2 text-xs lg:text-sm text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 font-bold disabled:opacity-50"
+            >
+              Eliminar foto
+            </button>
+
             <button type="button" @click="subirImagen" :disabled="isSavingImagen || !archivoImagen" class="px-3 py-2 text-xs lg:text-sm text-white bg-slate-900 rounded-lg hover:bg-slate-800 font-bold shadow-sm flex items-center disabled:bg-slate-700 disabled:cursor-not-allowed">
               {{ isSavingImagen ? 'Subiendo...' : 'Subir foto' }}
             </button>
@@ -306,9 +317,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import api from '../api/axios' 
+import api from '../api/axios'
 import Sidebar from '../components/Sidebar.vue'
-import { useToast } from '../composables/useToast' 
+import { useToast } from '../composables/useToast'
 
 // NUEVO: Estado para el menú móvil
 const isSidebarOpen = ref(false)
@@ -316,8 +327,8 @@ const isSidebarOpen = ref(false)
 const busqueda = ref('')
 const listaProductos = ref([])
 const listaCategorias = ref([])
-const listaProveedores = ref([]) 
-const { showToast } = useToast() 
+const listaProveedores = ref([])
+const { showToast } = useToast()
 
 const isModalOpen = ref(false)
 const isSavingProducto = ref(false)
@@ -402,8 +413,8 @@ const guardarCategoriaRapida = async () => {
     showToast("El nombre de la categoría es obligatorio.", "warning")
     return
   }
-  
-  isSavingCategoria.value = true 
+
+  isSavingCategoria.value = true
   try {
     const res = await api.post('/categorias/', formCategoriaRapida.value)
     listaCategorias.value.push(res.data)
@@ -411,8 +422,8 @@ const guardarCategoriaRapida = async () => {
     isCategoriaRapidaOpen.value = false
     formCategoriaRapida.value = { nombre: '', descripcion: 'Creada desde producto rápido' }
     showToast("Categoría rápida creada.", "success")
-  } catch (error) { 
-    showToast("Error al crear la categoría.", "error") 
+  } catch (error) {
+    showToast("Error al crear la categoría.", "error")
   } finally {
     isSavingCategoria.value = false
   }
@@ -423,11 +434,11 @@ const guardarProveedorRapido = async () => {
     showToast("El nombre de la empresa es obligatorio.", "warning")
     return
   }
-  
-  isSavingProveedor.value = true 
+
+  isSavingProveedor.value = true
   try {
-    const nitFinal = formProveedorRapido.value.nit && formProveedorRapido.value.nit.trim() !== '' 
-                     ? formProveedorRapido.value.nit 
+    const nitFinal = formProveedorRapido.value.nit && formProveedorRapido.value.nit.trim() !== ''
+                     ? formProveedorRapido.value.nit
                      : `S/N-${Date.now().toString().slice(-6)}`
 
     const payload = {
@@ -436,23 +447,23 @@ const guardarProveedorRapido = async () => {
       contacto: formProveedorRapido.value.contacto || null,
       descripcion: formProveedorRapido.value.descripcion || 'Creado desde acceso rápido'
     }
-    
+
     const res = await api.post('/proveedores/', payload)
     listaProveedores.value.push(res.data)
-    nuevoProducto.value.proveedor_id = res.data.id 
-    
+    nuevoProducto.value.proveedor_id = res.data.id
+
     isProveedorRapidoOpen.value = false
     formProveedorRapido.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
     showToast("Proveedor rápido creado.", "success")
   } catch (error) {
     showToast("Error al registrar proveedor.", "error")
   } finally {
-    isSavingProveedor.value = false 
+    isSavingProveedor.value = false
   }
 }
 
 const guardarProducto = async () => {
-  isSavingProducto.value = true 
+  isSavingProducto.value = true
   try {
     const specs = {}
     if (nuevoProducto.value.color) specs.color = nuevoProducto.value.color
@@ -466,7 +477,7 @@ const guardarProducto = async () => {
       stock: parseInt(nuevoProducto.value.stock),
       categoria_id: parseInt(nuevoProducto.value.categoria_id),
       proveedor_id: parseInt(nuevoProducto.value.proveedor_id),
-      especificaciones: specs 
+      especificaciones: specs
     }
 
     await api.post('/productos/', datosEnvio)
@@ -474,10 +485,10 @@ const guardarProducto = async () => {
     nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
     showToast(`Producto registrado con éxito.`, "success")
     cargarProductos()
-  } catch (error) { 
-    showToast(error.response?.data?.detail || "Error al procesar el guardado del producto.", "error") 
+  } catch (error) {
+    showToast(error.response?.data?.detail || "Error al procesar el guardado del producto.", "error")
   } finally {
-    isSavingProducto.value = false 
+    isSavingProducto.value = false
   }
 }
 
@@ -486,9 +497,9 @@ const eliminarProducto = async (id) => {
   try {
     await api.delete(`/productos/${id}`)
     showToast("Producto eliminado del inventario correctamente.", "success")
-    cargarProductos() 
-  } catch (error) { 
-    showToast("No se pudo eliminar el artículo.", "error") 
+    cargarProductos()
+  } catch (error) {
+    showToast("No se pudo eliminar el artículo.", "error")
   }
 }
 
@@ -527,6 +538,23 @@ const subirImagen = async () => {
     cargarProductos()
   } catch (error) {
     showToast(error.response?.data?.detail || "Error al subir la foto.", "error")
+  } finally {
+    isSavingImagen.value = false
+  }
+}
+
+// NUEVO: Eliminar la foto actual del producto
+const eliminarImagen = async () => {
+  if (!productoSeleccionadoImagen.value) return
+  if (!confirm("¿Eliminar la foto de este producto?")) return
+  isSavingImagen.value = true
+  try {
+    await api.delete(`/productos/${productoSeleccionadoImagen.value.id}/imagen`)
+    showToast("Foto eliminada correctamente.", "success")
+    cerrarModalImagen()
+    cargarProductos()
+  } catch (error) {
+    showToast(error.response?.data?.detail || "Error al eliminar la foto.", "error")
   } finally {
     isSavingImagen.value = false
   }
