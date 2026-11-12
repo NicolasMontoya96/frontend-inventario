@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-screen bg-gray-50 font-sans">
-
+    
     <Sidebar :isOpen="isSidebarOpen" @close="isSidebarOpen = false" />
 
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -18,7 +18,7 @@
       </header>
 
       <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-8">
-
+        
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8 max-w-4xl">
           <div class="bg-white p-5 lg:p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-blue-500">
             <p class="text-[10px] lg:text-sm font-medium text-gray-500 uppercase tracking-wider">Total Productos (Catálogo)</p>
@@ -57,16 +57,8 @@
               <tbody class="text-sm text-gray-700 divide-y divide-gray-200">
                 <tr v-for="producto in productosFiltrados" :key="'desk-'+producto.id" class="hover:bg-gray-50 transition">
                   <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                        <img v-if="producto.imagen_url" :src="producto.imagen_url" class="w-full h-full object-cover" alt="">
-                        <span v-else class="text-gray-300 text-lg">📦</span>
-                      </div>
-                      <div>
-                        <p class="font-semibold text-slate-900">{{ producto.nombre }}</p>
-                        <p class="text-xs text-gray-500">ID: {{ producto.id }}</p>
-                      </div>
-                    </div>
+                    <p class="font-semibold text-slate-900">{{ producto.nombre }}</p>
+                    <p class="text-xs text-gray-500">ID: {{ producto.id }}</p>
                   </td>
                   <td class="px-6 py-4">
                     <span class="bg-blue-100 text-blue-700 py-1 px-2 rounded-md text-xs font-bold">{{ getNombreCategoria(producto) }}</span>
@@ -75,13 +67,12 @@
                   <td class="px-6 py-4 font-bold" :class="producto.stock <= 5 ? 'text-red-600' : 'text-slate-700'">{{ producto.stock }} unid.</td>
                   <td class="px-6 py-4">
                     <span class="py-1 px-3 rounded-full text-xs font-semibold flex inline-flex items-center" :class="producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                      <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
+                      <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span> 
                       {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
                     </span>
                   </td>
                   <td class="px-6 py-4 text-right">
-                    <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 mr-3 transition text-base" title="Subir foto">📷</button>
-                    <button class="text-slate-400 hover:text-blue-600 mr-3 transition text-base">✏️</button>
+                    <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 mr-3 transition text-base">✏️</button>
                     <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-base">🗑️</button>
                   </td>
                 </tr>
@@ -95,32 +86,25 @@
           <div class="block lg:hidden divide-y divide-gray-100">
             <div v-for="producto in productosFiltrados" :key="'mob-'+producto.id" class="p-4 bg-white hover:bg-slate-50 transition">
               <div class="flex justify-between items-start mb-2">
-                <div class="flex items-center gap-3 pr-2">
-                  <div class="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                    <img v-if="producto.imagen_url" :src="producto.imagen_url" class="w-full h-full object-cover" alt="">
-                    <span v-else class="text-gray-300 text-base">📦</span>
-                  </div>
-                  <div>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">{{ producto.nombre }}</h3>
-                    <p class="text-[10px] text-gray-500 mt-0.5">ID: {{ producto.id }}</p>
-                  </div>
+                <div class="pr-2">
+                  <h3 class="font-bold text-slate-900 text-sm leading-tight">{{ producto.nombre }}</h3>
+                  <p class="text-[10px] text-gray-500 mt-0.5">ID: {{ producto.id }}</p>
                 </div>
                 <span class="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0">{{ getNombreCategoria(producto) }}</span>
               </div>
-
+              
               <div class="flex justify-between items-center mb-3">
                 <span class="font-black text-slate-800">${{ parseFloat(producto.precio_venta).toLocaleString() }}</span>
                 <span class="font-bold text-sm" :class="producto.stock <= 5 ? 'text-red-600' : 'text-slate-700'">{{ producto.stock }} unid.</span>
               </div>
-
+              
               <div class="flex justify-between items-center pt-3 border-t border-gray-50">
                 <span class="py-1 px-2 rounded-full text-[10px] font-semibold flex items-center" :class="producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                  <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
+                  <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span> 
                   {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
                 </span>
                 <div class="flex space-x-4">
-                  <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 transition text-lg active:scale-90">📷</button>
-                  <button class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90">✏️</button>
+                  <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90">✏️</button>
                   <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-lg active:scale-90">🗑️</button>
                 </div>
               </div>
@@ -137,10 +121,10 @@
     <div v-if="isModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
         <div class="px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
-          <h3 class="text-base lg:text-lg font-bold text-slate-800">Registrar Producto</h3>
+          <h3 class="text-base lg:text-lg font-bold text-slate-800">{{ productoEditandoId ? 'Editar Producto' : 'Registrar Producto' }}</h3>
           <button @click="cerrarModalProducto" class="text-gray-400 hover:text-red-500 transition text-2xl font-semibold leading-none">&times;</button>
         </div>
-
+        
         <div class="overflow-y-auto p-4 lg:p-6">
           <form @submit.prevent="guardarProducto" class="space-y-4">
             <div class="grid grid-cols-1 gap-4">
@@ -153,7 +137,7 @@
                 <textarea v-model="nuevoProducto.descripcion" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"></textarea>
               </div>
             </div>
-
+            
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div class="flex justify-between items-center mb-1">
@@ -195,7 +179,7 @@
             </div>
 
             <div>
-              <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Stock Inicial *</label>
+              <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">{{ productoEditandoId ? 'Stock *' : 'Stock Inicial *' }}</label>
               <input type="number" v-model="nuevoProducto.stock" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
             </div>
 
@@ -215,13 +199,13 @@
 
             <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 mt-6 sticky bottom-0 bg-white">
               <button type="button" @click="cerrarModalProducto" :disabled="isSavingProducto" class="px-4 py-2 text-xs lg:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">Cancelar</button>
-
+              
               <button type="submit" :disabled="isSavingProducto" class="px-4 py-2 text-xs lg:text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition shadow-sm flex items-center disabled:bg-slate-700 disabled:cursor-not-allowed">
                 <svg v-if="isSavingProducto" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                {{ isSavingProducto ? 'Guardando...' : 'Guardar' }}
+                {{ isSavingProducto ? 'Guardando...' : (productoEditandoId ? 'Guardar cambios' : 'Guardar') }}
               </button>
             </div>
           </form>
@@ -275,51 +259,14 @@
       </div>
     </div>
 
-    <div v-if="isImagenModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
-        <div class="px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-          <h3 class="text-sm lg:text-md font-bold text-slate-800">Foto de "{{ productoSeleccionadoImagen?.nombre }}"</h3>
-          <button type="button" @click="cerrarModalImagen" class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
-        </div>
-        <div class="p-4 lg:p-6 space-y-4">
-          <div class="w-full aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-            <img v-if="previsualizacionImagen" :src="previsualizacionImagen" class="w-full h-full object-cover" alt="">
-            <img v-else-if="productoSeleccionadoImagen?.imagen_url" :src="productoSeleccionadoImagen.imagen_url" class="w-full h-full object-cover" alt="">
-            <span v-else class="text-gray-300 text-4xl">📦</span>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Selecciona una foto *</label>
-            <input type="file" accept="image/*" @change="onArchivoSeleccionado" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2">
-          </div>
-          <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-4">
-            <button type="button" @click="cerrarModalImagen" :disabled="isSavingImagen" class="px-3 py-2 text-xs lg:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
-
-            <button
-              v-if="productoSeleccionadoImagen?.imagen_url && !previsualizacionImagen"
-              type="button"
-              @click="eliminarImagen"
-              :disabled="isSavingImagen"
-              class="px-3 py-2 text-xs lg:text-sm text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 font-bold disabled:opacity-50"
-            >
-              Eliminar foto
-            </button>
-
-            <button type="button" @click="subirImagen" :disabled="isSavingImagen || !archivoImagen" class="px-3 py-2 text-xs lg:text-sm text-white bg-slate-900 rounded-lg hover:bg-slate-800 font-bold shadow-sm flex items-center disabled:bg-slate-700 disabled:cursor-not-allowed">
-              {{ isSavingImagen ? 'Subiendo...' : 'Subir foto' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import api from '../api/axios'
+import api from '../api/axios' 
 import Sidebar from '../components/Sidebar.vue'
-import { useToast } from '../composables/useToast'
+import { useToast } from '../composables/useToast' 
 
 // NUEVO: Estado para el menú móvil
 const isSidebarOpen = ref(false)
@@ -327,11 +274,13 @@ const isSidebarOpen = ref(false)
 const busqueda = ref('')
 const listaProductos = ref([])
 const listaCategorias = ref([])
-const listaProveedores = ref([])
-const { showToast } = useToast()
+const listaProveedores = ref([]) 
+const { showToast } = useToast() 
 
 const isModalOpen = ref(false)
 const isSavingProducto = ref(false)
+const isCargandoEdicion = ref(false)
+const productoEditandoId = ref(null)
 const isSavingCategoria = ref(false)
 const isSavingProveedor = ref(false)
 
@@ -345,13 +294,6 @@ const isProveedorRapidoOpen = ref(false)
 const formProveedorRapido = ref({ nombre_empresa: '', nit: '', contacto: '', descripcion: '' })
 
 const nuevoProducto = ref({ nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' })
-
-// NUEVO: Estado del modal de subir foto
-const isImagenModalOpen = ref(false)
-const productoSeleccionadoImagen = ref(null)
-const archivoImagen = ref(null)
-const previsualizacionImagen = ref(null)
-const isSavingImagen = ref(false)
 
 const productosFiltrados = computed(() => {
   if (!listaProductos.value || !Array.isArray(listaProductos.value)) return []
@@ -374,7 +316,36 @@ const getNombreCategoria = (producto) => {
 
 const cerrarModalProducto = () => {
   isModalOpen.value = false
+  productoEditandoId.value = null
   nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
+}
+
+const abrirModalEdicion = async (producto) => {
+  isCargandoEdicion.value = true
+  isModalOpen.value = true
+  try {
+    // La lista (GET /productos/) no trae descripción ni especificaciones,
+    // así que traemos el producto completo para precargar el formulario.
+    const res = await api.get(`/productos/${producto.id}`)
+    const datos = res.data
+    productoEditandoId.value = datos.id
+    nuevoProducto.value = {
+      nombre: datos.nombre || '',
+      descripcion: datos.descripcion || '',
+      precio_compra: datos.precio_compra ?? '',
+      precio_venta: datos.precio_venta ?? '',
+      stock: datos.stock ?? '',
+      categoria_id: datos.categoria_id || '',
+      proveedor_id: datos.proveedor_id || '',
+      color: datos.especificaciones?.color || '',
+      talla: datos.especificaciones?.talla || '',
+    }
+  } catch (error) {
+    showToast("No pudimos cargar el producto para editar.", "error")
+    isModalOpen.value = false
+  } finally {
+    isCargandoEdicion.value = false
+  }
 }
 
 const cerrarModalCategoria = () => {
@@ -413,8 +384,8 @@ const guardarCategoriaRapida = async () => {
     showToast("El nombre de la categoría es obligatorio.", "warning")
     return
   }
-
-  isSavingCategoria.value = true
+  
+  isSavingCategoria.value = true 
   try {
     const res = await api.post('/categorias/', formCategoriaRapida.value)
     listaCategorias.value.push(res.data)
@@ -422,8 +393,8 @@ const guardarCategoriaRapida = async () => {
     isCategoriaRapidaOpen.value = false
     formCategoriaRapida.value = { nombre: '', descripcion: 'Creada desde producto rápido' }
     showToast("Categoría rápida creada.", "success")
-  } catch (error) {
-    showToast("Error al crear la categoría.", "error")
+  } catch (error) { 
+    showToast("Error al crear la categoría.", "error") 
   } finally {
     isSavingCategoria.value = false
   }
@@ -434,11 +405,11 @@ const guardarProveedorRapido = async () => {
     showToast("El nombre de la empresa es obligatorio.", "warning")
     return
   }
-
-  isSavingProveedor.value = true
+  
+  isSavingProveedor.value = true 
   try {
-    const nitFinal = formProveedorRapido.value.nit && formProveedorRapido.value.nit.trim() !== ''
-                     ? formProveedorRapido.value.nit
+    const nitFinal = formProveedorRapido.value.nit && formProveedorRapido.value.nit.trim() !== '' 
+                     ? formProveedorRapido.value.nit 
                      : `S/N-${Date.now().toString().slice(-6)}`
 
     const payload = {
@@ -447,23 +418,23 @@ const guardarProveedorRapido = async () => {
       contacto: formProveedorRapido.value.contacto || null,
       descripcion: formProveedorRapido.value.descripcion || 'Creado desde acceso rápido'
     }
-
+    
     const res = await api.post('/proveedores/', payload)
     listaProveedores.value.push(res.data)
-    nuevoProducto.value.proveedor_id = res.data.id
-
+    nuevoProducto.value.proveedor_id = res.data.id 
+    
     isProveedorRapidoOpen.value = false
     formProveedorRapido.value = { nombre_empresa: '', nit: '', contacto: '', descripcion: '' }
     showToast("Proveedor rápido creado.", "success")
   } catch (error) {
     showToast("Error al registrar proveedor.", "error")
   } finally {
-    isSavingProveedor.value = false
+    isSavingProveedor.value = false 
   }
 }
 
 const guardarProducto = async () => {
-  isSavingProducto.value = true
+  isSavingProducto.value = true 
   try {
     const specs = {}
     if (nuevoProducto.value.color) specs.color = nuevoProducto.value.color
@@ -477,18 +448,24 @@ const guardarProducto = async () => {
       stock: parseInt(nuevoProducto.value.stock),
       categoria_id: parseInt(nuevoProducto.value.categoria_id),
       proveedor_id: parseInt(nuevoProducto.value.proveedor_id),
-      especificaciones: specs
+      especificaciones: specs 
     }
 
-    await api.post('/productos/', datosEnvio)
+    if (productoEditandoId.value) {
+      await api.patch(`/productos/${productoEditandoId.value}`, datosEnvio)
+      showToast(`Producto actualizado con éxito.`, "success")
+    } else {
+      await api.post('/productos/', datosEnvio)
+      showToast(`Producto registrado con éxito.`, "success")
+    }
     isModalOpen.value = false
+    productoEditandoId.value = null
     nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
-    showToast(`Producto registrado con éxito.`, "success")
     cargarProductos()
-  } catch (error) {
-    showToast(error.response?.data?.detail || "Error al procesar el guardado del producto.", "error")
+  } catch (error) { 
+    showToast(error.response?.data?.detail || "Error al procesar el guardado del producto.", "error") 
   } finally {
-    isSavingProducto.value = false
+    isSavingProducto.value = false 
   }
 }
 
@@ -497,66 +474,9 @@ const eliminarProducto = async (id) => {
   try {
     await api.delete(`/productos/${id}`)
     showToast("Producto eliminado del inventario correctamente.", "success")
-    cargarProductos()
-  } catch (error) {
-    showToast("No se pudo eliminar el artículo.", "error")
-  }
-}
-
-// NUEVO: Lógica del modal de subir foto
-const abrirModalImagen = (producto) => {
-  productoSeleccionadoImagen.value = producto
-  archivoImagen.value = null
-  previsualizacionImagen.value = null
-  isImagenModalOpen.value = true
-}
-
-const cerrarModalImagen = () => {
-  isImagenModalOpen.value = false
-  productoSeleccionadoImagen.value = null
-  archivoImagen.value = null
-  previsualizacionImagen.value = null
-}
-
-const onArchivoSeleccionado = (event) => {
-  const archivo = event.target.files[0] || null
-  archivoImagen.value = archivo
-  previsualizacionImagen.value = archivo ? URL.createObjectURL(archivo) : null
-}
-
-const subirImagen = async () => {
-  if (!archivoImagen.value || !productoSeleccionadoImagen.value) return
-  isSavingImagen.value = true
-  try {
-    const formData = new FormData()
-    formData.append('archivo', archivoImagen.value)
-
-    await api.post(`/productos/${productoSeleccionadoImagen.value.id}/imagen`, formData)
-
-    showToast("Foto actualizada correctamente.", "success")
-    cerrarModalImagen()
-    cargarProductos()
-  } catch (error) {
-    showToast(error.response?.data?.detail || "Error al subir la foto.", "error")
-  } finally {
-    isSavingImagen.value = false
-  }
-}
-
-// NUEVO: Eliminar la foto actual del producto
-const eliminarImagen = async () => {
-  if (!productoSeleccionadoImagen.value) return
-  if (!confirm("¿Eliminar la foto de este producto?")) return
-  isSavingImagen.value = true
-  try {
-    await api.delete(`/productos/${productoSeleccionadoImagen.value.id}/imagen`)
-    showToast("Foto eliminada correctamente.", "success")
-    cerrarModalImagen()
-    cargarProductos()
-  } catch (error) {
-    showToast(error.response?.data?.detail || "Error al eliminar la foto.", "error")
-  } finally {
-    isSavingImagen.value = false
+    cargarProductos() 
+  } catch (error) { 
+    showToast("No se pudo eliminar el artículo.", "error") 
   }
 }
 
