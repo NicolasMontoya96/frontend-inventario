@@ -9,6 +9,7 @@ import LoginView from '../views/LoginView.vue'
 import ProveedoresView from '../views/ProveedoresView.vue' 
 import ReportesView from '../views/ReportesView.vue'
 import DevolucionesView from '../views/DevolucionesView.vue'
+import PedidosWebView from '../views/PedidosWebView.vue'
 
 const routes = [
   {
@@ -50,6 +51,11 @@ const routes = [
     path: '/devoluciones',
     name: 'devoluciones',
     component: DevolucionesView
+  },
+  {
+    path: '/pedidos-web',
+    name: 'pedidos-web',
+    component: PedidosWebView
   },
   {
     path: '/movimientos',
