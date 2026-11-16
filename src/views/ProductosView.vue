@@ -24,11 +24,15 @@
             <p class="text-[10px] lg:text-sm font-medium text-gray-500 uppercase tracking-wider">Total Productos (Catálogo)</p>
             <p class="text-2xl lg:text-3xl font-bold text-slate-800 mt-1 lg:mt-2">{{ productosFiltrados.length }}</p>
           </div>
-          <div class="bg-white p-5 lg:p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-red-500">
+          <button
+            type="button"
+            @click="irAStockCritico"
+            class="bg-white p-5 lg:p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-red-500 text-left hover:shadow-md hover:border-red-200 transition cursor-pointer"
+          >
             <p class="text-[10px] lg:text-sm font-medium text-gray-500 uppercase tracking-wider">Stock Crítico (≤ 5)</p>
             <p class="text-2xl lg:text-3xl font-bold text-red-600 mt-1 lg:mt-2">{{ productosEnPeligro }}</p>
-            <p class="text-[10px] lg:text-xs text-gray-400 mt-1">Artículos por reabastecer.</p>
-          </div>
+            <p class="text-[10px] lg:text-xs text-gray-400 mt-1">Artículos por reabastecer — clic para verlos.</p>
+          </button>
         </div>
 
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -46,6 +50,12 @@
                 <option value="todos">Todos los productos</option>
                 <option value="publicado">Publicados en tienda</option>
                 <option value="oculto">Ocultos (solo inventario)</option>
+              </select>
+              <select v-model="filtroStock" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm bg-white text-gray-700">
+                <option value="todos">Cualquier stock</option>
+                <option value="con_stock">Con stock</option>
+                <option value="sin_stock">Agotados</option>
+                <option value="critico">Stock crítico (≤ 5)</option>
               </select>
             </div>
             <button @click="isModalOpen = true" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center shadow-sm">
@@ -133,8 +143,8 @@
                   </td>
                   <td class="px-6 py-4 text-right">
                     <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 mr-3 transition text-base" title="Subir foto">📷</button>
-                    <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 mr-3 transition text-base">✏️</button>
-                    <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-base">🗑️</button>
+                    <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 mr-3 transition text-base" title="Editar producto">✏️</button>
+                    <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-base" title="Ocultar producto">🗑️</button>
                   </td>
                 </tr>
                 <tr v-if="productosFiltrados.length === 0">
@@ -183,9 +193,9 @@
                   </button>
                 </div>
                 <div class="flex space-x-4">
-                  <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 transition text-lg active:scale-90">📷</button>
-                  <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90">✏️</button>
-                  <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-lg active:scale-90">🗑️</button>
+                  <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 transition text-lg active:scale-90" title="Subir foto">📷</button>
+                  <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90" title="Editar producto">✏️</button>
+                  <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-lg active:scale-90" title="Ocultar producto">🗑️</button>
                 </div>
               </div>
             </div>
@@ -406,6 +416,10 @@ const filtroTienda = ref('todos')
 // 'todas' o el id de una categoría — para encontrar rápido los productos
 // de una sola categoría sin tener que buscarlos por nombre uno por uno.
 const filtroCategoria = ref('todas')
+// 'todos' | 'con_stock' | 'sin_stock' — para separar rápido lo que hay que
+// reabastecer de lo que sigue disponible, sin tener que leer la columna
+// Stock de los 47 (o más) productos uno por uno.
+const filtroStock = ref('todos')
 const listaProductos = ref([])
 const listaCategorias = ref([])
 const listaProveedores = ref([]) 
@@ -460,6 +474,16 @@ const productosFiltrados = computed(() => {
 
   if (filtroCategoria.value !== 'todas') {
     resultado = resultado.filter(p => Number(p.categoria_id) === Number(filtroCategoria.value))
+  }
+
+  if (filtroStock.value === 'con_stock') {
+    resultado = resultado.filter(p => p.stock > 0)
+  } else if (filtroStock.value === 'sin_stock') {
+    resultado = resultado.filter(p => p.stock === 0)
+  } else if (filtroStock.value === 'critico') {
+    // Mismo umbral que la tarjeta "Stock Crítico" (productosEnPeligro),
+    // para que lo que se ve al hacer clic ahí coincida exactamente.
+    resultado = resultado.filter(p => p.stock <= 5)
   }
 
   if (busqueda.value) {
@@ -545,6 +569,16 @@ const actualizarPublicadoEnLote = async (valor, accion) => {
 
 const publicarSeleccionados = () => actualizarPublicadoEnLote(true, 'publicar')
 const ocultarSeleccionados = () => actualizarPublicadoEnLote(false, 'ocultar')
+
+// Atajo desde la tarjeta "Stock Crítico": limpia los demás filtros para
+// que la lista muestre exactamente los productos que cuenta la tarjeta,
+// sin que una búsqueda o filtro anterior deje algunos afuera.
+const irAStockCritico = () => {
+  busqueda.value = ''
+  filtroCategoria.value = 'todas'
+  filtroTienda.value = 'todos'
+  filtroStock.value = 'critico'
+}
 
 const getNombreCategoria = (producto) => {
   const id = producto.categoria_id || producto.category_id || (producto.categoria && producto.categoria.id)
@@ -712,13 +746,17 @@ const guardarProducto = async () => {
 }
 
 const eliminarProducto = async (id) => {
-  if(!confirm("¿Estás seguro de eliminar este producto?")) return;
+  // No es un borrado real: el backend solo marca el producto como inactivo
+  // (activo = false) para no perder el historial de facturas que lo
+  // referencian. El texto lo refleja para no dar a entender que se pierde
+  // para siempre.
+  if(!confirm("¿Ocultar este producto? Dejará de verse en el inventario y en la tienda, pero se conserva en el historial de facturas.")) return;
   try {
     await api.delete(`/productos/${id}`)
-    showToast("Producto eliminado del inventario correctamente.", "success")
-    cargarProductos() 
-  } catch (error) { 
-    showToast("No se pudo eliminar el artículo.", "error") 
+    showToast("Producto ocultado del inventario correctamente.", "success")
+    cargarProductos()
+  } catch (error) {
+    showToast("No se pudo ocultar el artículo.", "error")
   }
 }
 
