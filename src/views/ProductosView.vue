@@ -33,19 +33,52 @@
 
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div class="p-4 lg:p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white">
-            <div class="relative w-full sm:w-72">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
-              <input type="text" v-model="busqueda" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <div class="relative w-full sm:w-64">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
+                <input type="text" v-model="busqueda" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+              </div>
+              <select v-model="filtroTienda" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm bg-white text-gray-700">
+                <option value="todos">Todos los productos</option>
+                <option value="publicado">Publicados en tienda</option>
+                <option value="oculto">Ocultos (solo inventario)</option>
+              </select>
             </div>
             <button @click="isModalOpen = true" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center shadow-sm">
               <span class="mr-2">+</span> Nuevo Producto
             </button>
           </div>
 
+          <div v-if="haySeleccionados" class="px-4 lg:px-6 py-3 border-b border-gray-200 bg-blue-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p class="text-xs lg:text-sm font-medium text-blue-800">{{ seleccionados.size }} producto{{ seleccionados.size === 1 ? '' : 's' }} seleccionado{{ seleccionados.size === 1 ? '' : 's' }}</p>
+            <div class="flex items-center gap-4">
+              <button type="button" @click="seleccionados.clear()" class="text-xs lg:text-sm text-blue-700 hover:text-blue-900 font-medium transition">Cancelar selección</button>
+              <button
+                type="button"
+                @click="ocultarSeleccionados"
+                :disabled="accionLoteEnCurso !== null"
+                class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-wait"
+              >
+                {{ accionLoteEnCurso === 'ocultar' ? 'Ocultando...' : 'Ocultar seleccionados' }}
+              </button>
+              <button
+                type="button"
+                @click="publicarSeleccionados"
+                :disabled="accionLoteEnCurso !== null"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-wait"
+              >
+                {{ accionLoteEnCurso === 'publicar' ? 'Publicando...' : 'Publicar seleccionados' }}
+              </button>
+            </div>
+          </div>
+
           <div class="hidden lg:block overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                  <th class="px-4 py-4 font-medium w-10">
+                    <input type="checkbox" :checked="todosSeleccionados" @change="alternarSeleccionarTodos" class="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer" aria-label="Seleccionar todos">
+                  </th>
                   <th class="px-6 py-4 font-medium">Producto</th>
                   <th class="px-6 py-4 font-medium">Categoría</th>
                   <th class="px-6 py-4 font-medium">Precio Venta</th>
@@ -57,6 +90,9 @@
               </thead>
               <tbody class="text-sm text-gray-700 divide-y divide-gray-200">
                 <tr v-for="producto in productosFiltrados" :key="'desk-'+producto.id" class="hover:bg-gray-50 transition">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" :checked="seleccionados.has(producto.id)" @change="alternarSeleccion(producto.id)" class="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer" :aria-label="`Seleccionar ${producto.nombre}`">
+                  </td>
                   <td class="px-6 py-4">
                     <p class="font-semibold text-slate-900">{{ producto.nombre }}</p>
                     <p class="text-xs text-gray-500">ID: {{ producto.id }}</p>
@@ -73,9 +109,15 @@
                     </span>
                   </td>
                   <td class="px-6 py-4">
-                    <span class="py-1 px-3 rounded-full text-xs font-semibold" :class="producto.publicado_en_tienda ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'">
-                      {{ producto.publicado_en_tienda ? 'Publicado' : 'Oculto' }}
-                    </span>
+                    <button
+                      type="button"
+                      @click="alternarPublicado(producto)"
+                      :disabled="idAlternando === producto.id"
+                      class="py-1 px-3 rounded-full text-xs font-semibold transition disabled:opacity-50 disabled:cursor-wait"
+                      :class="producto.publicado_en_tienda ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+                    >
+                      {{ idAlternando === producto.id ? 'Guardando...' : (producto.publicado_en_tienda ? 'Publicado' : 'Oculto') }}
+                    </button>
                   </td>
                   <td class="px-6 py-4 text-right">
                     <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 mr-3 transition text-base">✏️</button>
@@ -83,7 +125,7 @@
                   </td>
                 </tr>
                 <tr v-if="productosFiltrados.length === 0">
-                  <td colspan="7" class="px-6 py-8 text-center text-gray-500">No se encontraron productos registrados en el inventario.</td>
+                  <td colspan="8" class="px-6 py-8 text-center text-gray-500">No se encontraron productos registrados en el inventario.</td>
                 </tr>
               </tbody>
             </table>
@@ -92,9 +134,12 @@
           <div class="block lg:hidden divide-y divide-gray-100">
             <div v-for="producto in productosFiltrados" :key="'mob-'+producto.id" class="p-4 bg-white hover:bg-slate-50 transition">
               <div class="flex justify-between items-start mb-2">
-                <div class="pr-2">
-                  <h3 class="font-bold text-slate-900 text-sm leading-tight">{{ producto.nombre }}</h3>
-                  <p class="text-[10px] text-gray-500 mt-0.5">ID: {{ producto.id }}</p>
+                <div class="flex items-start gap-2 pr-2">
+                  <input type="checkbox" :checked="seleccionados.has(producto.id)" @change="alternarSeleccion(producto.id)" class="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer shrink-0" :aria-label="`Seleccionar ${producto.nombre}`">
+                  <div>
+                    <h3 class="font-bold text-slate-900 text-sm leading-tight">{{ producto.nombre }}</h3>
+                    <p class="text-[10px] text-gray-500 mt-0.5">ID: {{ producto.id }}</p>
+                  </div>
                 </div>
                 <span class="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0">{{ getNombreCategoria(producto) }}</span>
               </div>
@@ -110,9 +155,15 @@
                     <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
                     {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
                   </span>
-                  <span class="py-1 px-2 rounded-full text-[10px] font-semibold" :class="producto.publicado_en_tienda ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'">
-                    {{ producto.publicado_en_tienda ? 'En tienda' : 'Oculto' }}
-                  </span>
+                  <button
+                    type="button"
+                    @click="alternarPublicado(producto)"
+                    :disabled="idAlternando === producto.id"
+                    class="py-1 px-2 rounded-full text-[10px] font-semibold transition disabled:opacity-50"
+                    :class="producto.publicado_en_tienda ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'"
+                  >
+                    {{ idAlternando === producto.id ? 'Guardando...' : (producto.publicado_en_tienda ? 'En tienda' : 'Oculto') }}
+                  </button>
                 </div>
                 <div class="flex space-x-4">
                   <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90">✏️</button>
@@ -293,6 +344,10 @@ import { useToast } from '../composables/useToast'
 const isSidebarOpen = ref(false)
 
 const busqueda = ref('')
+// 'todos' | 'publicado' | 'oculto' — para encontrar rápido qué está
+// visible en la tienda sin tener que revisar producto por producto
+// cuando el catálogo crezca.
+const filtroTienda = ref('todos')
 const listaProductos = ref([])
 const listaCategorias = ref([])
 const listaProveedores = ref([]) 
@@ -316,16 +371,109 @@ const formProveedorRapido = ref({ nombre_empresa: '', nit: '', contacto: '', des
 
 const nuevoProducto = ref({ nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '', publicado_en_tienda: false })
 
+// Publicar en tienda sin pasar por el modal: selección para publicar en
+// lote y el id del producto cuyo toggle individual está en curso (para
+// desactivar su botón y que no se pueda hacer doble clic mientras guarda).
+const seleccionados = ref(new Set())
+const idAlternando = ref(null)
+// null | 'publicar' | 'ocultar' — cuál de los dos botones de lote está
+// corriendo, para deshabilitar ambos pero mostrar el texto correcto en
+// cada uno.
+const accionLoteEnCurso = ref(null)
+
 const productosFiltrados = computed(() => {
   if (!listaProductos.value || !Array.isArray(listaProductos.value)) return []
-  if (!busqueda.value) return listaProductos.value
-  return listaProductos.value.filter(p => p.nombre.toLowerCase().includes(busqueda.value.toLowerCase()))
+  let resultado = listaProductos.value
+
+  if (filtroTienda.value === 'publicado') {
+    resultado = resultado.filter(p => p.publicado_en_tienda)
+  } else if (filtroTienda.value === 'oculto') {
+    resultado = resultado.filter(p => !p.publicado_en_tienda)
+  }
+
+  if (busqueda.value) {
+    resultado = resultado.filter(p => p.nombre.toLowerCase().includes(busqueda.value.toLowerCase()))
+  }
+
+  return resultado
 })
 
 const productosEnPeligro = computed(() => {
   if (!listaProductos.value || !Array.isArray(listaProductos.value)) return 0
   return listaProductos.value.filter(p => p.stock <= 5).length
 })
+
+const haySeleccionados = computed(() => seleccionados.value.size > 0)
+
+const todosSeleccionados = computed(() => {
+  return productosFiltrados.value.length > 0 && productosFiltrados.value.every(p => seleccionados.value.has(p.id))
+})
+
+const alternarSeleccion = (id) => {
+  if (seleccionados.value.has(id)) {
+    seleccionados.value.delete(id)
+  } else {
+    seleccionados.value.add(id)
+  }
+}
+
+const alternarSeleccionarTodos = () => {
+  if (todosSeleccionados.value) {
+    productosFiltrados.value.forEach(p => seleccionados.value.delete(p.id))
+  } else {
+    productosFiltrados.value.forEach(p => seleccionados.value.add(p.id))
+  }
+}
+
+// Toggle individual: publica/oculta un producto con un solo clic desde la
+// lista, sin abrir el modal de edición.
+const alternarPublicado = async (producto) => {
+  if (idAlternando.value) return
+  idAlternando.value = producto.id
+  const nuevoValor = !producto.publicado_en_tienda
+  try {
+    await api.patch(`/productos/${producto.id}`, { publicado_en_tienda: nuevoValor })
+    producto.publicado_en_tienda = nuevoValor
+    showToast(nuevoValor ? `${producto.nombre} ahora se ve en la tienda.` : `${producto.nombre} se ocultó de la tienda.`, "success")
+  } catch (error) {
+    showToast("No se pudo actualizar la visibilidad en la tienda.", "error")
+  } finally {
+    idAlternando.value = null
+  }
+}
+
+// Publicar/ocultar en lote: igual que el toggle individual pero para
+// todos los seleccionados a la vez — publicar sirve cuando se sube una
+// tanda y se quiere marcar varios al terminar; ocultar sirve para
+// retirar varios de la tienda de una sola vez (ej. agotados o en pausa).
+const actualizarPublicadoEnLote = async (valor, accion) => {
+  const ids = Array.from(seleccionados.value)
+  if (ids.length === 0) return
+
+  accionLoteEnCurso.value = accion
+  try {
+    const resultados = await Promise.allSettled(
+      ids.map(id => api.patch(`/productos/${id}`, { publicado_en_tienda: valor }))
+    )
+    const fallidos = resultados.filter(r => r.status === 'rejected').length
+    const exitosos = resultados.length - fallidos
+
+    await cargarProductos()
+    seleccionados.value.clear()
+
+    const verbo = valor ? 'publicado' : 'ocultado'
+    if (fallidos === 0) {
+      showToast(`${exitosos} producto${exitosos === 1 ? '' : 's'} ${verbo}${exitosos === 1 ? '' : 's'}.`, "success")
+    } else {
+      showToast(`${exitosos} ${verbo}(s), ${fallidos} fallaron. Vuelve a seleccionarlos para intentar de nuevo.`, "warning")
+    }
+  } finally {
+    accionLoteEnCurso.value = null
+  }
+}
+
+const publicarSeleccionados = () => actualizarPublicadoEnLote(true, 'publicar')
+const ocultarSeleccionados = () => actualizarPublicadoEnLote(false, 'ocultar')
 
 const getNombreCategoria = (producto) => {
   const id = producto.categoria_id || producto.category_id || (producto.categoria && producto.categoria.id)
