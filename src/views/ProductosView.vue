@@ -51,6 +51,7 @@
                   <th class="px-6 py-4 font-medium">Precio Venta</th>
                   <th class="px-6 py-4 font-medium">Stock</th>
                   <th class="px-6 py-4 font-medium">Estado</th>
+                  <th class="px-6 py-4 font-medium">Tienda</th>
                   <th class="px-6 py-4 font-medium text-right">Acciones</th>
                 </tr>
               </thead>
@@ -71,13 +72,18 @@
                       {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
                     </span>
                   </td>
+                  <td class="px-6 py-4">
+                    <span class="py-1 px-3 rounded-full text-xs font-semibold" :class="producto.publicado_en_tienda ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'">
+                      {{ producto.publicado_en_tienda ? 'Publicado' : 'Oculto' }}
+                    </span>
+                  </td>
                   <td class="px-6 py-4 text-right">
                     <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 mr-3 transition text-base">✏️</button>
                     <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-base">🗑️</button>
                   </td>
                 </tr>
                 <tr v-if="productosFiltrados.length === 0">
-                  <td colspan="6" class="px-6 py-8 text-center text-gray-500">No se encontraron productos registrados en el inventario.</td>
+                  <td colspan="7" class="px-6 py-8 text-center text-gray-500">No se encontraron productos registrados en el inventario.</td>
                 </tr>
               </tbody>
             </table>
@@ -99,10 +105,15 @@
               </div>
               
               <div class="flex justify-between items-center pt-3 border-t border-gray-50">
-                <span class="py-1 px-2 rounded-full text-[10px] font-semibold flex items-center" :class="producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                  <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span> 
-                  {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
-                </span>
+                <div class="flex items-center gap-1.5">
+                  <span class="py-1 px-2 rounded-full text-[10px] font-semibold flex items-center" :class="producto.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                    <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="producto.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
+                    {{ producto.stock > 0 ? 'Activo' : 'Agotado' }}
+                  </span>
+                  <span class="py-1 px-2 rounded-full text-[10px] font-semibold" :class="producto.publicado_en_tienda ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'">
+                    {{ producto.publicado_en_tienda ? 'En tienda' : 'Oculto' }}
+                  </span>
+                </div>
                 <div class="flex space-x-4">
                   <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90">✏️</button>
                   <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-lg active:scale-90">🗑️</button>
@@ -181,6 +192,16 @@
             <div>
               <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">{{ productoEditandoId ? 'Stock *' : 'Stock Inicial *' }}</label>
               <input type="number" v-model="nuevoProducto.stock" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+            </div>
+
+            <div class="border-t border-gray-200 pt-4 mt-2">
+              <label class="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" v-model="nuevoProducto.publicado_en_tienda" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900">
+                <span class="text-xs lg:text-sm text-gray-700">
+                  <span class="font-medium block">Publicar en la tienda online</span>
+                  <span class="text-[10px] lg:text-xs text-gray-500">Si lo dejas sin marcar, el producto queda solo en tu inventario interno — los clientes de la tienda no lo verán hasta que lo publiques.</span>
+                </span>
+              </label>
             </div>
 
             <div class="border-t border-gray-200 pt-4 mt-2">
@@ -293,7 +314,7 @@ const formCategoriaRapida = ref({ nombre: '', descripcion: 'Creada desde product
 const isProveedorRapidoOpen = ref(false)
 const formProveedorRapido = ref({ nombre_empresa: '', nit: '', contacto: '', descripcion: '' })
 
-const nuevoProducto = ref({ nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' })
+const nuevoProducto = ref({ nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '', publicado_en_tienda: false })
 
 const productosFiltrados = computed(() => {
   if (!listaProductos.value || !Array.isArray(listaProductos.value)) return []
@@ -317,7 +338,7 @@ const getNombreCategoria = (producto) => {
 const cerrarModalProducto = () => {
   isModalOpen.value = false
   productoEditandoId.value = null
-  nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
+  nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '', publicado_en_tienda: false }
 }
 
 const abrirModalEdicion = async (producto) => {
@@ -339,6 +360,7 @@ const abrirModalEdicion = async (producto) => {
       proveedor_id: datos.proveedor_id || '',
       color: datos.especificaciones?.color || '',
       talla: datos.especificaciones?.talla || '',
+      publicado_en_tienda: !!datos.publicado_en_tienda,
     }
   } catch (error) {
     showToast("No pudimos cargar el producto para editar.", "error")
@@ -448,7 +470,8 @@ const guardarProducto = async () => {
       stock: parseInt(nuevoProducto.value.stock),
       categoria_id: parseInt(nuevoProducto.value.categoria_id),
       proveedor_id: parseInt(nuevoProducto.value.proveedor_id),
-      especificaciones: specs 
+      especificaciones: specs,
+      publicado_en_tienda: !!nuevoProducto.value.publicado_en_tienda,
     }
 
     if (productoEditandoId.value) {
@@ -460,7 +483,7 @@ const guardarProducto = async () => {
     }
     isModalOpen.value = false
     productoEditandoId.value = null
-    nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '' }
+    nuevoProducto.value = { nombre: '', descripcion: '', precio_compra: '', precio_venta: '', stock: '', categoria_id: '', proveedor_id: '', color: '', talla: '', publicado_en_tienda: false }
     cargarProductos()
   } catch (error) { 
     showToast(error.response?.data?.detail || "Error al procesar el guardado del producto.", "error") 
