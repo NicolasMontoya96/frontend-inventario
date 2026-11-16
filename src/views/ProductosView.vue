@@ -38,6 +38,10 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
                 <input type="text" v-model="busqueda" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
               </div>
+              <select v-model="filtroCategoria" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm bg-white text-gray-700">
+                <option value="todas">Todas las categorías</option>
+                <option v-for="cat in listaCategorias" :key="cat.id" :value="cat.id">{{ cat.nombre }}</option>
+              </select>
               <select v-model="filtroTienda" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm bg-white text-gray-700">
                 <option value="todos">Todos los productos</option>
                 <option value="publicado">Publicados en tienda</option>
@@ -348,6 +352,9 @@ const busqueda = ref('')
 // visible en la tienda sin tener que revisar producto por producto
 // cuando el catálogo crezca.
 const filtroTienda = ref('todos')
+// 'todas' o el id de una categoría — para encontrar rápido los productos
+// de una sola categoría sin tener que buscarlos por nombre uno por uno.
+const filtroCategoria = ref('todas')
 const listaProductos = ref([])
 const listaCategorias = ref([])
 const listaProveedores = ref([]) 
@@ -389,6 +396,10 @@ const productosFiltrados = computed(() => {
     resultado = resultado.filter(p => p.publicado_en_tienda)
   } else if (filtroTienda.value === 'oculto') {
     resultado = resultado.filter(p => !p.publicado_en_tienda)
+  }
+
+  if (filtroCategoria.value !== 'todas') {
+    resultado = resultado.filter(p => Number(p.categoria_id) === Number(filtroCategoria.value))
   }
 
   if (busqueda.value) {
