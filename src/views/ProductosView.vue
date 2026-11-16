@@ -98,8 +98,16 @@
                     <input type="checkbox" :checked="seleccionados.has(producto.id)" @change="alternarSeleccion(producto.id)" class="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer" :aria-label="`Seleccionar ${producto.nombre}`">
                   </td>
                   <td class="px-6 py-4">
-                    <p class="font-semibold text-slate-900">{{ producto.nombre }}</p>
-                    <p class="text-xs text-gray-500">ID: {{ producto.id }}</p>
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                        <img v-if="producto.imagen_url" :src="producto.imagen_url" class="w-full h-full object-cover" alt="">
+                        <span v-else class="text-gray-300 text-lg">📦</span>
+                      </div>
+                      <div>
+                        <p class="font-semibold text-slate-900">{{ producto.nombre }}</p>
+                        <p class="text-xs text-gray-500">ID: {{ producto.id }}</p>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-6 py-4">
                     <span class="bg-blue-100 text-blue-700 py-1 px-2 rounded-md text-xs font-bold">{{ getNombreCategoria(producto) }}</span>
@@ -124,6 +132,7 @@
                     </button>
                   </td>
                   <td class="px-6 py-4 text-right">
+                    <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 mr-3 transition text-base" title="Subir foto">📷</button>
                     <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 mr-3 transition text-base">✏️</button>
                     <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-base">🗑️</button>
                   </td>
@@ -140,6 +149,10 @@
               <div class="flex justify-between items-start mb-2">
                 <div class="flex items-start gap-2 pr-2">
                   <input type="checkbox" :checked="seleccionados.has(producto.id)" @change="alternarSeleccion(producto.id)" class="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer shrink-0" :aria-label="`Seleccionar ${producto.nombre}`">
+                  <div class="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                    <img v-if="producto.imagen_url" :src="producto.imagen_url" class="w-full h-full object-cover" alt="">
+                    <span v-else class="text-gray-300 text-base">📦</span>
+                  </div>
                   <div>
                     <h3 class="font-bold text-slate-900 text-sm leading-tight">{{ producto.nombre }}</h3>
                     <p class="text-[10px] text-gray-500 mt-0.5">ID: {{ producto.id }}</p>
@@ -170,6 +183,7 @@
                   </button>
                 </div>
                 <div class="flex space-x-4">
+                  <button @click="abrirModalImagen(producto)" class="text-slate-400 hover:text-green-600 transition text-lg active:scale-90">📷</button>
                   <button @click="abrirModalEdicion(producto)" class="text-slate-400 hover:text-blue-600 transition text-lg active:scale-90">✏️</button>
                   <button @click="eliminarProducto(producto.id)" class="text-slate-400 hover:text-red-600 transition text-lg active:scale-90">🗑️</button>
                 </div>
@@ -335,6 +349,43 @@
       </div>
     </div>
 
+    <div v-if="isImagenModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
+        <div class="px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+          <h3 class="text-sm lg:text-md font-bold text-slate-800">Foto de "{{ productoSeleccionadoImagen?.nombre }}"</h3>
+          <button type="button" @click="cerrarModalImagen" class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
+        </div>
+        <div class="p-4 lg:p-6 space-y-4">
+          <div class="w-full aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+            <img v-if="previsualizacionImagen" :src="previsualizacionImagen" class="w-full h-full object-cover" alt="">
+            <img v-else-if="productoSeleccionadoImagen?.imagen_url" :src="productoSeleccionadoImagen.imagen_url" class="w-full h-full object-cover" alt="">
+            <span v-else class="text-gray-300 text-4xl">📦</span>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Selecciona una foto *</label>
+            <input type="file" accept="image/*" @change="onArchivoSeleccionado" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2">
+          </div>
+          <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-4">
+            <button type="button" @click="cerrarModalImagen" :disabled="isSavingImagen" class="px-3 py-2 text-xs lg:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+
+            <button
+              v-if="productoSeleccionadoImagen?.imagen_url && !previsualizacionImagen"
+              type="button"
+              @click="eliminarImagen"
+              :disabled="isSavingImagen"
+              class="px-3 py-2 text-xs lg:text-sm text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 font-bold disabled:opacity-50"
+            >
+              Eliminar foto
+            </button>
+
+            <button type="button" @click="subirImagen" :disabled="isSavingImagen || !archivoImagen" class="px-3 py-2 text-xs lg:text-sm text-white bg-slate-900 rounded-lg hover:bg-slate-800 font-bold shadow-sm flex items-center disabled:bg-slate-700 disabled:cursor-not-allowed">
+              {{ isSavingImagen ? 'Subiendo...' : 'Subir foto' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -387,6 +438,15 @@ const idAlternando = ref(null)
 // corriendo, para deshabilitar ambos pero mostrar el texto correcto en
 // cada uno.
 const accionLoteEnCurso = ref(null)
+
+// Modal de foto del producto (Cloudinary): separado del modal de
+// edición porque la foto se sube/elimina al instante, sin pasar por el
+// formulario completo ni por "Guardar cambios".
+const isImagenModalOpen = ref(false)
+const productoSeleccionadoImagen = ref(null)
+const archivoImagen = ref(null)
+const previsualizacionImagen = ref(null)
+const isSavingImagen = ref(false)
 
 const productosFiltrados = computed(() => {
   if (!listaProductos.value || !Array.isArray(listaProductos.value)) return []
@@ -659,6 +719,61 @@ const eliminarProducto = async (id) => {
     cargarProductos() 
   } catch (error) { 
     showToast("No se pudo eliminar el artículo.", "error") 
+  }
+}
+
+const abrirModalImagen = (producto) => {
+  productoSeleccionadoImagen.value = producto
+  archivoImagen.value = null
+  previsualizacionImagen.value = null
+  isImagenModalOpen.value = true
+}
+
+const cerrarModalImagen = () => {
+  isImagenModalOpen.value = false
+  productoSeleccionadoImagen.value = null
+  archivoImagen.value = null
+  previsualizacionImagen.value = null
+}
+
+const onArchivoSeleccionado = (event) => {
+  const archivo = event.target.files[0] || null
+  archivoImagen.value = archivo
+  previsualizacionImagen.value = archivo ? URL.createObjectURL(archivo) : null
+}
+
+const subirImagen = async () => {
+  if (!archivoImagen.value || !productoSeleccionadoImagen.value) return
+  isSavingImagen.value = true
+  try {
+    const formData = new FormData()
+    formData.append('archivo', archivoImagen.value)
+
+    await api.post(`/productos/${productoSeleccionadoImagen.value.id}/imagen`, formData)
+
+    showToast("Foto actualizada correctamente.", "success")
+    cerrarModalImagen()
+    cargarProductos()
+  } catch (error) {
+    showToast(error.response?.data?.detail || "Error al subir la foto.", "error")
+  } finally {
+    isSavingImagen.value = false
+  }
+}
+
+const eliminarImagen = async () => {
+  if (!productoSeleccionadoImagen.value) return
+  if (!confirm("¿Eliminar la foto de este producto?")) return
+  isSavingImagen.value = true
+  try {
+    await api.delete(`/productos/${productoSeleccionadoImagen.value.id}/imagen`)
+    showToast("Foto eliminada correctamente.", "success")
+    cerrarModalImagen()
+    cargarProductos()
+  } catch (error) {
+    showToast(error.response?.data?.detail || "Error al eliminar la foto.", "error")
+  } finally {
+    isSavingImagen.value = false
   }
 }
 
