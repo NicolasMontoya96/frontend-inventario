@@ -103,7 +103,7 @@
                 </tr>
               </thead>
               <tbody class="text-sm text-gray-700 divide-y divide-gray-200">
-                <tr v-for="producto in productosFiltrados" :key="'desk-'+producto.id" class="hover:bg-gray-50 transition">
+                <tr v-for="producto in productosPaginados" :key="'desk-'+producto.id" class="hover:bg-gray-50 transition">
                   <td class="px-4 py-4">
                     <input type="checkbox" :checked="seleccionados.has(producto.id)" @change="alternarSeleccion(producto.id)" class="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer" :aria-label="`Seleccionar ${producto.nombre}`">
                   </td>
@@ -155,7 +155,7 @@
           </div>
 
           <div class="block lg:hidden divide-y divide-gray-100">
-            <div v-for="producto in productosFiltrados" :key="'mob-'+producto.id" class="p-4 bg-white hover:bg-slate-50 transition">
+            <div v-for="producto in productosPaginados" :key="'mob-'+producto.id" class="p-4 bg-white hover:bg-slate-50 transition">
               <div class="flex justify-between items-start mb-2">
                 <div class="flex items-start gap-2 pr-2">
                   <input type="checkbox" :checked="seleccionados.has(producto.id)" @change="alternarSeleccion(producto.id)" class="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900 cursor-pointer shrink-0" :aria-label="`Seleccionar ${producto.nombre}`">
@@ -201,6 +201,17 @@
             </div>
             <div v-if="productosFiltrados.length === 0" class="px-4 py-8 text-center text-sm text-gray-500">
               No se encontraron productos registrados.
+            </div>
+          </div>
+
+          <div v-if="totalPaginas > 1" class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 lg:px-6 py-3 border-t border-gray-200 bg-white">
+            <p class="text-xs lg:text-sm text-gray-500">
+              Mostrando {{ (paginaActual - 1) * PRODUCTOS_POR_PAGINA + 1 }}–{{ Math.min(paginaActual * PRODUCTOS_POR_PAGINA, productosFiltrados.length) }} de {{ productosFiltrados.length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" @click="paginaActual--" :disabled="paginaActual <= 1" class="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">Anterior</button>
+              <span class="text-xs lg:text-sm text-gray-600 font-medium">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+              <button type="button" @click="paginaActual++" :disabled="paginaActual >= totalPaginas" class="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">Siguiente</button>
             </div>
           </div>
 
@@ -400,7 +411,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import api from '../api/axios' 
 import Sidebar from '../components/Sidebar.vue'
 import { useToast } from '../composables/useToast' 
@@ -420,6 +431,12 @@ const filtroCategoria = ref('todas')
 // reabastecer de lo que sigue disponible, sin tener que leer la columna
 // Stock de los 47 (o más) productos uno por uno.
 const filtroStock = ref('todos')
+// Paginación: 47 productos ya se ven pesados de scrollear, y seguirá
+// creciendo. 20 por página mantiene la tabla corta sin esconder nada —
+// los filtros de arriba siguen aplicando sobre el total, la página solo
+// corta cuántas filas se muestran a la vez.
+const PRODUCTOS_POR_PAGINA = 20
+const paginaActual = ref(1)
 const listaProductos = ref([])
 const listaCategorias = ref([])
 const listaProveedores = ref([]) 
@@ -493,6 +510,27 @@ const productosFiltrados = computed(() => {
   return resultado
 })
 
+const totalPaginas = computed(() => Math.max(1, Math.ceil(productosFiltrados.value.length / PRODUCTOS_POR_PAGINA)))
+
+const productosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * PRODUCTOS_POR_PAGINA
+  return productosFiltrados.value.slice(inicio, inicio + PRODUCTOS_POR_PAGINA)
+})
+
+// Si un filtro o búsqueda nuevo deja menos páginas de las que había,
+// evita quedar en una página vacía (ej. estar en la página 3 y que el
+// filtro aplicado solo tenga 1 página de resultados).
+watch(totalPaginas, (nuevoTotal) => {
+  if (paginaActual.value > nuevoTotal) paginaActual.value = nuevoTotal
+})
+
+// Cualquier cambio en los filtros o la búsqueda vuelve a la página 1 —
+// si no, se podría quedar viendo una página que ya no tiene sentido para
+// el nuevo criterio (ej. filtrar por una categoría estando en la página 4).
+watch([busqueda, filtroCategoria, filtroTienda, filtroStock], () => {
+  paginaActual.value = 1
+})
+
 const productosEnPeligro = computed(() => {
   if (!listaProductos.value || !Array.isArray(listaProductos.value)) return 0
   return listaProductos.value.filter(p => p.stock <= 5).length
@@ -500,8 +538,11 @@ const productosEnPeligro = computed(() => {
 
 const haySeleccionados = computed(() => seleccionados.value.size > 0)
 
+// Ojo: opera sobre la PÁGINA visible, no sobre todos los resultados
+// filtrados — con paginación, seleccionar "todos" y que en realidad
+// marque productos de páginas que ni se están viendo sería confuso.
 const todosSeleccionados = computed(() => {
-  return productosFiltrados.value.length > 0 && productosFiltrados.value.every(p => seleccionados.value.has(p.id))
+  return productosPaginados.value.length > 0 && productosPaginados.value.every(p => seleccionados.value.has(p.id))
 })
 
 const alternarSeleccion = (id) => {
@@ -514,9 +555,9 @@ const alternarSeleccion = (id) => {
 
 const alternarSeleccionarTodos = () => {
   if (todosSeleccionados.value) {
-    productosFiltrados.value.forEach(p => seleccionados.value.delete(p.id))
+    productosPaginados.value.forEach(p => seleccionados.value.delete(p.id))
   } else {
-    productosFiltrados.value.forEach(p => seleccionados.value.add(p.id))
+    productosPaginados.value.forEach(p => seleccionados.value.add(p.id))
   }
 }
 
