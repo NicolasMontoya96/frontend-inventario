@@ -46,12 +46,13 @@
 
           <template v-else>
             <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse min-w-[760px]">
+              <table class="w-full text-left border-collapse min-w-[860px]">
                 <thead>
                   <tr class="bg-gray-50 text-gray-500 text-[10px] lg:text-xs uppercase tracking-wider border-b border-gray-200">
                     <th class="px-4 py-3 font-medium">Referencia</th>
                     <th class="px-4 py-3 font-medium">Fecha</th>
                     <th class="px-4 py-3 font-medium">Cliente</th>
+                    <th class="px-4 py-3 font-medium">Ciudad</th>
                     <th class="px-4 py-3 font-medium">Estado</th>
                     <th class="px-4 py-3 font-medium text-right">Total</th>
                     <th class="px-4 py-3 font-medium text-center">Detalle</th>
@@ -66,6 +67,10 @@
                     <td class="px-4 py-3">
                       <span class="font-semibold text-slate-900 block">{{ pedido.nombre_cliente }}</span>
                       <span class="text-gray-500 text-[11px]">{{ pedido.telefono_cliente }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">
+                      <span v-if="pedido.ciudad">{{ pedido.ciudad }}, {{ pedido.departamento }}</span>
+                      <span v-else class="text-gray-400">—</span>
                     </td>
                     <td class="px-4 py-3">
                       <span :class="claseEstado(pedido.estado)" class="px-2 py-1 rounded text-[10px] font-bold uppercase">
@@ -82,7 +87,7 @@
                     </td>
                   </tr>
                   <tr v-if="pedidosFiltrados.length === 0">
-                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                       No hay pedidos{{ filtroActual ? ` en estado "${etiquetaEstado(filtroActual)}"` : '' }}.
                     </td>
                   </tr>
@@ -114,7 +119,16 @@
             </div>
             <div>
               <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Envío</p>
-              <p class="text-slate-800">{{ pedidoSeleccionado.direccion_envio }}</p>
+              <!-- Pedidos nuevos traen la dirección ya separada por campo;
+                   los pedidos de antes de este cambio solo tienen el texto
+                   combinado en direccion_envio, así que lo usamos como
+                   respaldo para no dejar esos pedidos viejos sin dirección. -->
+              <template v-if="pedidoSeleccionado.direccion">
+                <p class="text-slate-800">{{ pedidoSeleccionado.direccion }}</p>
+                <p class="text-slate-500" v-if="pedidoSeleccionado.referencia_direccion">{{ pedidoSeleccionado.referencia_direccion }}</p>
+                <p class="text-slate-500">{{ pedidoSeleccionado.ciudad }}, {{ pedidoSeleccionado.departamento }}</p>
+              </template>
+              <p class="text-slate-800" v-else>{{ pedidoSeleccionado.direccion_envio }}</p>
             </div>
           </div>
 
