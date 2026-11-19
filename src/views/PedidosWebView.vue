@@ -129,6 +129,9 @@
                 <p class="text-slate-500">{{ pedidoSeleccionado.ciudad }}, {{ pedidoSeleccionado.departamento }}</p>
               </template>
               <p class="text-slate-800" v-else>{{ pedidoSeleccionado.direccion_envio }}</p>
+              <p class="text-slate-500 text-[11px] mt-1" v-if="pedidoSeleccionado.transportadora || pedidoSeleccionado.numero_guia">
+                {{ pedidoSeleccionado.transportadora }}<span v-if="pedidoSeleccionado.transportadora && pedidoSeleccionado.numero_guia"> &middot; </span><span v-if="pedidoSeleccionado.numero_guia">Guía: {{ pedidoSeleccionado.numero_guia }}</span>
+              </p>
             </div>
           </div>
 
@@ -160,6 +163,63 @@
               <span class="text-xl lg:text-2xl font-black text-slate-900">${{ parseFloat(pedidoSeleccionado.total_pedido).toLocaleString() }}</span>
             </div>
           </div>
+
+          <!-- Seguimiento del pedido: solo aplica una vez que ya se pagó.
+               Son pasos manuales (vos los marcas), no hay integración con
+               ninguna transportadora. -->
+          <div v-if="pedidoSeleccionado.estado === 'pagado' || pedidoSeleccionado.estado === 'enviado'" class="pt-4 mt-4 border-t border-gray-200">
+            <p v-if="errorAccionEnvio" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-3">{{ errorAccionEnvio }}</p>
+
+            <template v-if="pedidoSeleccionado.estado === 'pagado'">
+              <button
+                v-if="!mostrarFormEnvio"
+                @click="mostrarFormEnvio = true"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition"
+              >
+                📦 Marcar como enviado
+              </button>
+              <div v-else class="flex flex-col gap-2.5 bg-blue-50 border border-blue-100 rounded-lg p-3.5">
+                <p class="text-xs font-semibold text-blue-900">Datos de envío (opcional)</p>
+                <input
+                  v-model="formEnvio.transportadora"
+                  type="text"
+                  placeholder="Transportadora (ej: Servientrega)"
+                  class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <input
+                  v-model="formEnvio.numero_guia"
+                  type="text"
+                  placeholder="Número de guía"
+                  class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <div class="flex gap-2">
+                  <button
+                    @click="confirmarEnvio"
+                    :disabled="marcandoEnvio"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition disabled:opacity-50"
+                  >
+                    {{ marcandoEnvio ? 'Guardando...' : 'Confirmar envío' }}
+                  </button>
+                  <button
+                    @click="mostrarFormEnvio = false"
+                    :disabled="marcandoEnvio"
+                    class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <button
+              v-else-if="pedidoSeleccionado.estado === 'enviado'"
+              @click="marcarEntregado"
+              :disabled="marcandoEntrega"
+              class="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition disabled:opacity-50"
+            >
+              {{ marcandoEntrega ? 'Guardando...' : '✅ Marcar como entregado' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -183,6 +243,8 @@ const filtrosEstado = [
   { valor: '', etiqueta: 'Todos' },
   { valor: 'pendiente', etiqueta: 'Pendientes' },
   { valor: 'pagado', etiqueta: 'Pagados' },
+  { valor: 'enviado', etiqueta: 'Enviados' },
+  { valor: 'entregado', etiqueta: 'Entregados' },
   { valor: 'fallido', etiqueta: 'Fallidos' },
   { valor: 'expirado', etiqueta: 'Expirados' },
 ]
@@ -193,7 +255,14 @@ const pedidosFiltrados = computed(() => {
 })
 
 const etiquetaEstado = (estado) => {
-  const mapa = { pendiente: 'Pendiente', pagado: 'Pagado', fallido: 'Fallido', expirado: 'Expirado' }
+  const mapa = {
+    pendiente: 'Pendiente',
+    pagado: 'Pagado',
+    enviado: 'Enviado',
+    entregado: 'Entregado',
+    fallido: 'Fallido',
+    expirado: 'Expirado',
+  }
   return mapa[estado] || estado
 }
 
@@ -201,6 +270,8 @@ const claseEstado = (estado) => {
   const mapa = {
     pendiente: 'bg-amber-100 text-amber-800',
     pagado: 'bg-green-100 text-green-800',
+    enviado: 'bg-blue-100 text-blue-800',
+    entregado: 'bg-slate-200 text-slate-700',
     fallido: 'bg-red-100 text-red-800',
     expirado: 'bg-gray-200 text-gray-600',
   }
@@ -212,8 +283,56 @@ const formatearFecha = (fechaStr) => {
   return new Date(fechaStr).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+const mostrarFormEnvio = ref(false)
+const formEnvio = ref({ transportadora: '', numero_guia: '' })
+const marcandoEnvio = ref(false)
+const marcandoEntrega = ref(false)
+const errorAccionEnvio = ref('')
+
 const abrirDetalle = (pedido) => {
   pedidoSeleccionado.value = pedido
+  mostrarFormEnvio.value = false
+  formEnvio.value = { transportadora: '', numero_guia: '' }
+  errorAccionEnvio.value = ''
+}
+
+// Reemplaza el pedido tanto en el modal como en la lista de la tabla, para
+// que los dos queden sincronizados sin tener que recargar todo desde el
+// backend otra vez.
+const actualizarPedidoLocal = (pedidoActualizado) => {
+  pedidoSeleccionado.value = pedidoActualizado
+  const indice = pedidos.value.findIndex((p) => p.id === pedidoActualizado.id)
+  if (indice !== -1) pedidos.value[indice] = pedidoActualizado
+}
+
+const confirmarEnvio = async () => {
+  errorAccionEnvio.value = ''
+  marcandoEnvio.value = true
+  try {
+    const res = await api.post(`/pedidos-web/${pedidoSeleccionado.value.referencia_pago}/enviar`, {
+      transportadora: formEnvio.value.transportadora.trim() || null,
+      numero_guia: formEnvio.value.numero_guia.trim() || null,
+    })
+    actualizarPedidoLocal(res.data)
+    mostrarFormEnvio.value = false
+  } catch (error) {
+    errorAccionEnvio.value = error.response?.data?.detail || 'No se pudo marcar el pedido como enviado.'
+  } finally {
+    marcandoEnvio.value = false
+  }
+}
+
+const marcarEntregado = async () => {
+  errorAccionEnvio.value = ''
+  marcandoEntrega.value = true
+  try {
+    const res = await api.post(`/pedidos-web/${pedidoSeleccionado.value.referencia_pago}/entregar`)
+    actualizarPedidoLocal(res.data)
+  } catch (error) {
+    errorAccionEnvio.value = error.response?.data?.detail || 'No se pudo marcar el pedido como entregado.'
+  } finally {
+    marcandoEntrega.value = false
+  }
 }
 
 const cargarPedidos = async () => {
