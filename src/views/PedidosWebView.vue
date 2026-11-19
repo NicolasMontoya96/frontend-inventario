@@ -29,13 +29,30 @@
 
       <div class="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-8">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 lg:p-6 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-base lg:text-lg font-bold text-slate-800">
+          <div class="p-4 lg:p-6 border-b border-gray-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <h2 class="text-base lg:text-lg font-bold text-slate-800 shrink-0">
               {{ pedidosFiltrados.length }} pedido{{ pedidosFiltrados.length === 1 ? '' : 's' }}
             </h2>
-            <button @click="cargarPedidos" class="hidden lg:flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
-              🔄 Actualizar
-            </button>
+            <div class="flex items-center gap-3 lg:ml-auto">
+              <div class="relative flex-1 lg:flex-none lg:w-72">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                <input
+                  v-model="terminoBusqueda"
+                  type="text"
+                  placeholder="Buscar por referencia, cliente o teléfono..."
+                  class="w-full border border-gray-200 rounded-lg pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                >
+                <button
+                  v-if="terminoBusqueda"
+                  @click="terminoBusqueda = ''"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  title="Limpiar búsqueda"
+                >&times;</button>
+              </div>
+              <button @click="cargarPedidos" class="hidden lg:flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium shrink-0">
+                🔄 Actualizar
+              </button>
+            </div>
           </div>
 
           <div v-if="cargando" class="p-12 text-center text-gray-500">Cargando pedidos…</div>
@@ -88,7 +105,7 @@
                   </tr>
                   <tr v-if="pedidosFiltrados.length === 0">
                     <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                      No hay pedidos{{ filtroActual ? ` en estado "${etiquetaEstado(filtroActual)}"` : '' }}.
+                      No hay pedidos{{ filtroActual ? ` en estado "${etiquetaEstado(filtroActual)}"` : '' }}{{ terminoBusqueda ? ` que coincidan con "${terminoBusqueda}"` : '' }}.
                     </td>
                   </tr>
                 </tbody>
@@ -237,6 +254,7 @@ const pedidos = ref([])
 const cargando = ref(true)
 const errorCarga = ref('')
 const filtroActual = ref('')
+const terminoBusqueda = ref('')
 const pedidoSeleccionado = ref(null)
 
 const filtrosEstado = [
@@ -250,8 +268,21 @@ const filtrosEstado = [
 ]
 
 const pedidosFiltrados = computed(() => {
-  if (!filtroActual.value) return pedidos.value
-  return pedidos.value.filter((p) => p.estado === filtroActual.value)
+  let resultado = pedidos.value
+  if (filtroActual.value) {
+    resultado = resultado.filter((p) => p.estado === filtroActual.value)
+  }
+  const termino = terminoBusqueda.value.trim().toLowerCase()
+  if (termino) {
+    // Compara contra referencia, nombre del cliente y teléfono a la vez —
+    // no hace falta que el admin sepa en cuál de los tres está buscando.
+    resultado = resultado.filter((p) =>
+      p.referencia_pago?.toLowerCase().includes(termino) ||
+      p.nombre_cliente?.toLowerCase().includes(termino) ||
+      p.telefono_cliente?.toLowerCase().includes(termino)
+    )
+  }
+  return resultado
 })
 
 const etiquetaEstado = (estado) => {
