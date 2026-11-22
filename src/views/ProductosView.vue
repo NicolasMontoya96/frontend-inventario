@@ -36,8 +36,19 @@
         </div>
 
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 lg:p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white">
-            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <!-- Antes esta barra pasaba a una sola fila horizontal desde los
+               640px (sm:) sin permitir que nada bajara de línea. En una
+               tablet, el buscador + 3 selects + el botón de "Nuevo
+               Producto" no caben en ese ancho, y el botón terminaba
+               empujado fuera de la pantalla — como el contenedor recorta
+               el desborde horizontal, ni siquiera se podía hacer scroll
+               para alcanzarlo. En vez de perseguir un ancho de pantalla
+               exacto que vuelva a fallar con otro tamaño de tablet
+               mañana, usamos flex-wrap: cada elemento pasa a la
+               siguiente línea solo si de verdad no cabe, a cualquier
+               ancho. -->
+          <div class="p-4 lg:p-6 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 bg-white">
+            <div class="flex flex-wrap gap-3 w-full lg:w-auto">
               <div class="relative w-full sm:w-64">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
                 <input type="text" v-model="busqueda" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
@@ -58,7 +69,7 @@
                 <option value="critico">Stock crítico (≤ 5)</option>
               </select>
             </div>
-            <button @click="isModalOpen = true" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center shadow-sm">
+            <button @click="isModalOpen = true" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center shadow-sm shrink-0">
               <span class="mr-2">+</span> Nuevo Producto
             </button>
           </div>
@@ -267,21 +278,21 @@
                 <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Costo *</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
-                  <input type="number" step="0.01" v-model="nuevoProducto.precio_compra" required class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm font-semibold text-slate-800">
+                  <input type="number" step="0.01" min="0" v-model="nuevoProducto.precio_compra" required class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm font-semibold text-slate-800">
                 </div>
               </div>
               <div>
                 <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Venta *</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
-                  <input type="number" step="0.01" v-model="nuevoProducto.precio_venta" required class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm font-semibold text-slate-800">
+                  <input type="number" step="0.01" min="0" v-model="nuevoProducto.precio_venta" required class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm font-semibold text-slate-800">
                 </div>
               </div>
             </div>
 
             <div>
               <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">{{ productoEditandoId ? 'Stock *' : 'Stock Inicial *' }}</label>
-              <input type="number" v-model="nuevoProducto.stock" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+              <input type="number" min="0" v-model="nuevoProducto.stock" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
             </div>
 
             <div class="border-t border-gray-200 pt-4 mt-2">
