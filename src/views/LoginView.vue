@@ -12,10 +12,7 @@
           <input id="username" type="text" v-model="credentials.username" :disabled="isSubmitting" required placeholder="Ej: admin" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition duration-200 disabled:opacity-50" />
         </div>
         <div>
-          <div class="flex justify-between items-center mb-1.5">
-            <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-            <a href="#" class="text-xs text-slate-600 hover:text-slate-900 hover:underline transition">¿Olvidaste tu clave?</a>
-          </div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
           <input id="password" type="password" v-model="credentials.password" :disabled="isSubmitting" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition duration-200 disabled:opacity-50" />
         </div>
         <div class="pt-4">
@@ -60,12 +57,19 @@ const handleLogin = async () => {
     localStorage.setItem('token', token)
     localStorage.setItem('usuario', credentials.value.username)
     
-    showToast(`¡Bienvenido de nuevo, ${credentials.value.username}! Sincronizando balances contables...`, "success")
+    showToast(`¡Bienvenido de nuevo, ${credentials.value.username}!`, "success")
     router.push('/dashboard')
 
   } catch (error) {
     console.error("Error al iniciar sesión:", error)
-    showToast("Acceso denegado: Usuario o contraseña incorrectos.", "error")
+    // Antes esto siempre decía "usuario o contraseña incorrectos", así el
+    // problema real fuera que el servidor no respondió o no hay red — lo que
+    // hace imposible distinguir un typo de una caída del backend. Usamos el
+    // mensaje real que manda el backend cuando lo hay (401: credenciales
+    // malas) y uno aparte cuando no hay respuesta del todo.
+    const mensaje = error.response?.data?.detail
+      || (error.request ? 'No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.' : 'Ocurrió un error inesperado. Intenta de nuevo.')
+    showToast(mensaje, "error")
   } finally {
     isSubmitting.value = false 
   }
