@@ -153,7 +153,7 @@
                 <label class="block text-xs font-semibold text-blue-800 mb-1">Cuota Inicial (Abono)</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-500">$</span>
-                  <input type="number" v-model="venta.cuota_inicial" class="w-full pl-8 pr-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                  <input type="number" min="0" v-model="venta.cuota_inicial" class="w-full pl-8 pr-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 </div>
                 <p class="text-[10px] text-blue-600 mt-1 font-medium">Deuda: ${{ montoEnDeuda.toLocaleString() }}</p>
               </div>

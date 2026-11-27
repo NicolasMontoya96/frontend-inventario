@@ -321,6 +321,7 @@ const cargarDatosBase = async () => {
     listaProveedores.value = resProveedores.data
   } catch (error) {
     console.error("Error cargando catálogos de compras:", error)
+    showToast('No se pudieron cargar productos/proveedores. Intenta de nuevo.', 'error')
   }
 }
 
@@ -331,6 +332,7 @@ const cambiarAHistorial = async () => {
     historialCompras.value = res.data
   } catch (error) {
     console.error("Error cargando el historial:", error)
+    showToast('No se pudo cargar el historial de compras. Intenta de nuevo.', 'error')
   }
 }
 

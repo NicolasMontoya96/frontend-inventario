@@ -202,7 +202,9 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '../api/axios'
 import Sidebar from '../components/Sidebar.vue'
+import { useToast } from '../composables/useToast'
 
+const { showToast } = useToast()
 const isSidebarOpen = ref(false)
 
 const listaVentas    = ref([])
@@ -340,6 +342,9 @@ const cargarTodo = async () => {
     listaClientes.value  = resClientes.data
   } catch (error) {
     console.error('Error cargando movimientos:', error)
+    // Antes esto solo quedaba en la consola — la página se veía vacía sin
+    // que quien la usa supiera que en realidad falló la carga.
+    showToast('No se pudo cargar el libro de movimientos. Intenta de nuevo.', 'error')
   }
 }
 

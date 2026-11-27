@@ -156,7 +156,7 @@
             </div>
             <div>
               <label class="block text-xs lg:text-sm font-medium text-gray-700 mb-1">Saldo Base Deuda</label>
-              <input type="number" v-model="formCliente.saldo_deuda" :disabled="isEditing" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 disabled:opacity-60 focus:outline-none">
+              <input type="number" min="0" v-model="formCliente.saldo_deuda" :disabled="isEditing" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 disabled:opacity-60 focus:outline-none">
             </div>
           </div>
           <div class="pt-4 flex justify-end space-x-3 border-t border-gray-100 mt-6 sticky bottom-0 bg-white">
@@ -233,9 +233,10 @@
               <div class="relative w-28 sm:w-40">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-sm">💵</span>
                 <input 
-                  type="number" 
+                  type="number"
                   v-model.number="montoAbono"
-                  placeholder="Abonar..." 
+                  placeholder="Abonar..."
+                  min="0"
                   :max="clienteSeleccionado?.saldo_deuda"
                   :disabled="isSavingAbono"
                   class="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-bold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white disabled:opacity-50"
